@@ -2,7 +2,7 @@
 
 **GitHub Issues are the canonical backlog.** This file is a thin snapshot of the loose
 ends that aren't (yet) filed as issues, plus a pointer to the tracked work. Last
-reconciled 2026-08-20.
+reconciled 2026-09-24.
 
 The previous version of this file was a 2026-07-19 findings dump. Almost all of it has
 since landed: the core/stack plugin split (PR #33), the task-handoff schema (PR #35), and
@@ -20,6 +20,16 @@ at intake, targets its PR by integration mode, and gates the draft PR on a new *
 proving every validation criterion; the `neo-pr-authoring` skill owns the PR's shape. The
 interleaved-vs-phased testing question is settled — interleaved labeled steps.
 
+The **Verification / Operations loop** is now `[live]` as well (neo-core 2.4.0), so all four loops
+are built:
+- the Neo Business Engineer carries a feature through Boundary 3 verification, with a
+  falsification pass and a recorded triage;
+- a new **Neo Platform Engineer** owns Deployment Space: the non-prod deploy, the draft feature PR
+  that a human squash-merges, watching CD, and the Boundary 4 deployment record;
+- a new **Neo SRE** owns Operations Space: KPI intake, the post-deploy watch, and KPI settlement.
+
+The plan is `docs/plans/verification-operations-loop-plan.md`.
+
 ## Where the work is tracked
 
 Run `gh issue list --state open` for the live backlog. Current shape:
@@ -33,8 +43,10 @@ Run `gh issue list --state open` for the live backlog. Current shape:
   `neo-core` itself stays language- and technology-agnostic; users can add or swap stack
   plugins freely. Neo's own "bread-and-butter stack" — the plugins Neo ships and
   maintains out of the box — is: `neo-frontend-react` (#16), `neo-frontend-angular`
-  (#65), `neo-csharp-api` (#66), `neo-azure-platform` (#67), and `neo-ops` (#68, pairs
-  with #14 Verification agents).
+  (#65), `neo-csharp-api` (#66), `neo-azure-platform` (#67), and `neo-ops` (#68). **#68 is
+  re-scoped:** the agents it was paired with (#14) now ship in `neo-core`, so `neo-ops` ships
+  **skills only**: deploy, smoke, and telemetry skills that `platform-engineer` and `sre`
+  late-bind by description. It ships no agent. Update the issue upstream.
 - **Safety / hooks** — #4 core observability hook set + per-session enablement. The
   `preToolUse` enforcement half (block-on-`main`, draft-PR-only) shipped in #42 / PR #44 and
   was **withdrawn from the shipped manifests** in #95: the scripts remain in-tree but are
@@ -43,7 +55,8 @@ Run `gh issue list --state open` for the live backlog. Current shape:
   #75 tracks duplicate hook registration now that two plugins each ship the same events.
 - **Docs tooling** — #76 add undocumented-plugin and Neo-stylization checks to the Docs
   Consistency Audit; blocked on gh-aw v0.83.1 to recompile the workflow lock file.
-- **Verification agents** — #14 SRE / Platform Eng (`phase: core`, not built).
+- **Verification agents** — #14 SRE / Platform Eng: **built** in neo-core 2.4.0
+  (`platform-engineer`, `sre`). Close it upstream once this lands on `main`.
 - **Binding + roles** — #7 abstract-role → specialist binding scheme, #10 abstract role
   defs (the interleaved-vs-phased testing question it raised is resolved: interleaved labeled
   steps, `process-flow.md` § Boundary 2).
@@ -53,13 +66,19 @@ Run `gh issue list --state open` for the live backlog. Current shape:
 
 ## Untracked loose ends (no issue yet)
 
-- **`neo-feature-authoring` skill lacks the falsifiability gate.** The design is settled in
-  `docs/concepts/process-flow.md` § "Falsifiability is a gate on KPI authoring" (metric /
-  instrumentation / window / falsifier), but `SKILL.md` still treats KPIs as optional and
-  says nothing about instrumentation-in-scope or the captive-population rule. Fold it in.
-  This is the back-door slice of **G2** in
-  `docs/contributing/design/framework-gap-analysis.md`; that doc also flags the untracked front-door
-  question (should Boundary 1 carry a testability gate?) plus gaps G1, G3–G5.
+- **Framework gaps still untracked.** The back-door slice of **G2** is done: the falsifiability
+  gate is now in `neo-feature-authoring` (neo-core 2.4.0). **G3** and **G4** are now **Partial**,
+  closed by the Verification / Operations loop. Still untracked, all in
+  `docs/contributing/design/framework-gap-analysis.md`:
+  - G2's front-door question: should Boundary 1 carry a testability gate?
+  - G1: the binding-constraint gate.
+  - G5: the single-BE gate.
+- **Strategic-reopen thresholds are provisional.** The three candidate signals in
+  `docs/concepts/process-flow.md` § Strategic-reopen candidates are a first guess. Revisit them once
+  a handful of candidates have been decided.
+- **Mode B flag cleanup has no mechanism.** The release record lists the flag as cleanup owed. It
+  is undecided who removes it, and whether removal is a Neo Task
+  (`docs/concepts/process-flow.md` § Related open items).
 - **master-control model names unverified.** `neo.master-control.agent.md` recommends
   specific models ("per the Copilot learning hub") that were never confirmed. Verify
   against current docs, or replace names with selection *criteria* so they can't go stale.
@@ -71,9 +90,13 @@ Run `gh issue list --state open` for the live backlog. Current shape:
 
 These aren't issues because their home is the owning doc; listed here so they're findable:
 
-- Diagram 2 sub-box mislabel (and redrawing `Testing` as a step label, with a `Validate` phase) →
-  `docs/concepts/process-flow.md`, the drawing-bug note near the end. The testing-model drift
-  itself is resolved (§ Boundary 2).
+- Diagram 2's two drawing bugs are resolved **in text**, and the text wins over the drawing:
+  - the sub-box mislabel: `Testing` is a step label, and `Validate` sits before `PR`;
+  - Operations Space had no boundary: it is now Boundary 4, drawn in Mermaid in
+    `docs/concepts/process-flow.md`.
+
+  The PDF itself (`docs/guides/Agentic Engineering_*.pdf`) is still stale and needs redrawing by
+  its owner (`process-flow.md` § Related open items).
 - Consumer `AGENTS.md` as a hard prerequisite + where the integration mode is declared →
   `docs/contributing/reference/stack-plugin-contract.md` (project tier) and its "Who authors the consuming repo's `AGENTS.md`?"
   open question.

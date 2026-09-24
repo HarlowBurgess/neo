@@ -5,11 +5,12 @@ Specification loop. Assumes Neo is already installed (see
 [installing-neo.md](./installing-neo.md)). Terms in **bold** are in the
 [glossary](../glossary.md).
 
-> **Status:** the Product loop (problem → PRD), the Specification loop (PRD → Feature → Task), and
-> the Coding loop (Task → validated draft PR) are `[live]`. The first two are interactive by
-> design; the Coding loop runs on its own between two gates — plan approval and the draft PR. What
-> comes after the PR is `[target]`. See
-> [getting-started.md](../getting-started.md#whats-live-vs-target).
+> **Status:** all four loops are `[live]` — the Product loop (problem → PRD), the Specification
+> loop (PRD → Feature → Task), the Coding loop (Task → validated draft PR), and the Verification /
+> Operations loop (merged PRs → verified feature → production → settled KPIs). The first two are
+> interactive by design; the Coding loop runs on its own between two gates — plan approval and the
+> draft PR; the last loop is human-judged at verification and human-performed at every merge and
+> production change. See [getting-started.md](../getting-started.md#whats-live-vs-target).
 
 ## The agents you'll invoke
 
@@ -22,6 +23,8 @@ Specification loop. Assumes Neo is already installed (see
 | **Neo Task Planner** (`task-planner`) | Splits a signed feature into **Tasks**, with you | Yes |
 | **Neo Technical Engineer** (`technical-engineer`) | Orchestrator for the Coding loop — takes a Task (issue/story) and drives research → plan → implement → review → validate → draft PR | Yes |
 | **Neo Researcher / Implementation Planner / Code Writer / Code Reviewer / Validator** | Coding-loop workers the orchestrator delegates to | No — the orchestrator wires them |
+| **Neo Platform Engineer** (`platform-engineer`) | Deployment Space — non-prod deploys for verification, the feature's release PR, watching CD, production smoke checks, the deployment record, and rollbacks | Yes — for `handover` and `rollback`; the Business Engineer delegates the rest |
+| **Neo SRE** (`sre`) | Operations Space — KPI intake, the post-deploy watch, and KPI settlement | Yes |
 
 The workers are deliberately sharp and single-purpose; they don't know each other or the whole
 spec. The orchestrator (and you) wire them together.
@@ -100,6 +103,41 @@ integration branch first. Each child session stops at its plan gate for the Busi
 rather than for `/rubber-duck`. The Business Engineer approves or rejects each plan, steers the
 sessions, and reports back every task, issue, branch, and draft PR.
 
+## After the PRs — verify, release, settle
+
+A merged task PR is not a shipped feature. **Verification is per-feature**, so this part starts when
+every task under a feature has merged. Each task's draft PR is reviewed and merged by a human; no
+agent merges. Under Mode A the PRs merge into the feature's integration branch.
+
+1. **Verify.** Invoke **Neo Business Engineer** with the feature. It confirms every task has
+   landed, has the **Neo Platform Engineer** deploy the feature to non-prod and smoke-test it, then
+   walks you — the BE — through each verification step **exactly as you signed it**. For each step
+   you run it as written, then **try to break it**: a boundary input, the wrong user, an
+   interrupted flow. The agent suggests variations; you choose and judge. The verdict is yours, and
+   it's recorded on the feature's issue. If a step now seems wrong, that isn't an edit — it's a
+   finding that the feature was mis-specified. See
+   [process-flow.md § Boundary 3](../concepts/process-flow.md#boundary-3--verification--deployment).
+2. **Triage a rejection.** If anything fails, the agent interviews you to decide the finding —
+   **mis-built** (new tasks under the same feature), **mis-specified** (re-sign the feature), or
+   **both** (spec first). You decide; it records and routes.
+3. **Release.** On a pass, the Neo Platform Engineer opens a **draft feature PR** (Mode A) whose
+   body closes every task and carries the traceability lines. A human marks it ready and
+   **squash-merges it with the PR body as the commit message**. Under Mode B, a human turns the
+   flag on in production instead.
+4. **Hand over.** After the merge, invoke **Neo Platform Engineer** with `handover`. It watches
+   your project's CD — it never deploys to production itself — runs read-only production smoke
+   checks, and posts the **deployment record**. If CD or a smoke check fails, it recommends a
+   rollback; a human decides, and `rollback` prepares it.
+5. **Operate and settle.** Invoke **Neo SRE** with `intake`: it confirms each KPI's instrumentation
+   is emitting in production. Use `watch` for the post-deploy health check. When a KPI's window
+   closes, `settle` applies its falsifier to production telemetry and posts `supported`,
+   `falsified`, or `unsettleable`. The last two come back to the BE. A pattern that implicates the
+   PRD itself goes to the Product Engineer as a **strategic-reopen candidate**, and the Product
+   Engineer decides what it means.
+
+The feature's issue stays open until its KPIs settle, so your open, shipped features are exactly
+the verdicts Operations still owes you.
+
 ## Your job at the gates
 
 Neo puts the human where judgment is irreplaceable and lets machines handle the rest:
@@ -108,9 +146,12 @@ Neo puts the human where judgment is irreplaceable and lets machines handle the 
   at task time. Don't retrofit them.
 - **Own the decomposition.** The task split is a conversation, not a hand-off. Push back when the
   planner is unsure.
-- **Verify features yourself.** Verification is human judgment against the business contract;
-  validation (tests + agents) is the machine's job against the spec. See
+- **Verify features yourself — and try to break them.** Verification is human judgment against the
+  business contract; validation (tests + agents) is the machine's job against the spec. See
   [architecture.md § The core rule](../concepts/architecture.md#the-core-rule).
+- **Make KPIs falsifiable, or leave them out.** Name the metric, the instrumentation, the window,
+  and the result that would disprove it. For an internal app your users must use, only outcome
+  metrics count — never adoption or usage.
 
 ## What "well-formed work" looks like
 

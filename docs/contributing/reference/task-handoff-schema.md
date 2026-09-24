@@ -36,7 +36,9 @@ Consequences:
 - The draft **PR** that closes the task links back to it by that id — `Closes #<n>` or
   `Refs #<n>` on GitHub depending on the PR's base, a work-item link on Azure DevOps. Which one is
   owned by the [`neo-pr-authoring`](../../../plugins/neo-core/skills/neo-pr-authoring/SKILL.md)
-  skill.
+  skill. Under Mode A, where the task PR can only say `Refs`, the task closes when its verified
+  feature's squash PR lands on the default branch carrying `Closes #<n>` — owned by the
+  [`neo-release-authoring`](../../../plugins/neo-core/skills/neo-release-authoring/SKILL.md) skill.
 - A task that is not filed as an issue/story does not exist and cannot cross Boundary 1.
 
 ### Naming caution (Azure DevOps)

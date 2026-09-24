@@ -22,13 +22,18 @@ A **Feature** is the contract. Give it:
 
 - **What** — a brief description of the change.
 - **Why** — justification for building it *now*.
-- **KPIs** (optional) — a hypothesis with a number and a window (e.g. "decrease abandoned carts by
-  23% over 30 days").
+- **KPIs** (optional) — a falsifiable hypothesis. Name the **metric**, what **instrumentation**
+  emits it (and whether it has to ship with the feature), the **window**, and the **falsifier** —
+  the result that would count as disproved. Add a **baseline** for an internal app your users must
+  use, or whenever the falsifier is relative. The exact gate is in
+  [process-flow.md § Falsifiability](../concepts/process-flow.md#falsifiability-is-a-gate-on-kpi-authoring).
 - **Verification steps** — business-executable in a non-prod environment. **This is the contract.**
   If you can't verify it, it can't deploy.
 
 A feature is *ready to work* only with What + Why + verification steps **and** BE sign-off. The
-**Neo Feature Agent** drafts this with you; see [using-neo.md](./using-neo.md).
+**Neo Feature Agent** drafts this with you; see [using-neo.md](./using-neo.md). **Signing freezes
+the contract:** the verification steps and each KPI's falsifier are what the feature is judged
+against later. Changing one after sign-off is a re-sign, not an edit.
 
 ## Filing a Task
 
@@ -62,3 +67,8 @@ crosses is [process-flow.md § Boundary 1](../concepts/process-flow.md).
 - **Layer-split by default.** Splitting into front-end/back-end/db tasks usually produces slices
   that can't validate alone. Prefer vertical slices.
 - **Deferred validation.** If you're planning to "add tests later," the task isn't ready.
+- **A KPI nothing can falsify.** "Improve the checkout experience" has no falsifier. If no
+  observable result would count as a failure, drop the KPI.
+- **Engagement metrics on a captive population.** For an internal app people must use, adoption
+  and usage reach 100% whether the feature helps or not. Use an outcome metric (cycle time, error
+  rate, cost per case) with a baseline.

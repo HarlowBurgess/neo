@@ -38,7 +38,7 @@ becomes a documented requirement.
 
 ## The four loops (Diagram 2, target end-state)
 
-The Product, Specification, and Coding loops are built; the rest is the end-state map.
+All four loops are built. Diagram 2 is the original drawing of them; where it and the text disagree, the text wins (see [process-flow.md § Related open items](./process-flow.md#related-open-items)).
 
 1. **Product loop** `[live]` — problem/opportunity → **PRD**. Research fan-out, then the
    viability / desirability / feasibility lenses, then synthesis. Human-gated twice: the decision
@@ -49,7 +49,13 @@ The Product, Specification, and Coding loops are built; the rest is the end-stat
 3. **Coding loop** `[live]` — one **Task** → intake → research → plan → implement and review
    (interleaved feature and test **steps**) → validate → draft **PR**. Machine-validated, human-gated
    at plan approval and at the PR. See [Coding loop in detail](#coding-loop-in-detail).
-4. **Verification / Operations** `[target]` — PR Review, Smoke Test, User Test, CD, Telemetry, run by the SRE and Platform Engineering agents.
+4. **Verification / Operations** `[live]` — the draft PRs → fan-in → non-prod deploy and smoke
+   test → **verification** by the BE (user test) → release → CD and production smoke test →
+   telemetry and KPI settlement. Human-judged at verification, human-performed at every merge and
+   every change to production, machine-checked everywhere else. It runs through three spaces —
+   Verification, Deployment, Operations — with the **Neo Business Engineer**, **Neo Platform
+   Engineer**, and **Neo SRE** supporting their humans. See
+   [Verification / Operations loop in detail](#verification--operations-loop-in-detail).
 
 The **artifact that crosses each boundary** — including Boundary 0, where the PRD leaves the
 Product loop — is owned by [process-flow.md](./process-flow.md).
@@ -62,10 +68,10 @@ A feature is business-level and contains:
 
 - **What** — a brief description.
 - **Why** — justification for building it _now_.
-- **KPIs** (optional) — hypotheses with a number and a window (e.g. "decrease abandoned carts by 23% over 30 days").
+- **KPIs** (optional) — falsifiable hypotheses, each naming its metric, instrumentation, window, and falsifier up front (see [process-flow.md § Falsifiability is a gate on KPI authoring](./process-flow.md#falsifiability-is-a-gate-on-kpi-authoring)). Settled from production telemetry after the window closes.
 - **Verification steps** — business-executable in non-prod. **This is the contract.**
 
-Entry to _ready-to-work_ requires What + Why + verification steps **and** BE sign-off. If the BE cannot verify it, it cannot deploy.
+Entry to _ready-to-work_ requires What + Why + verification steps **and** BE sign-off. If the BE cannot verify it, it cannot deploy. Sign-off freezes the verification steps and KPI falsifiers: they are pre-registered, and changing one later is a re-sign.
 
 ### Feature → Task decomposition
 
@@ -110,6 +116,53 @@ owned by [process-flow.md](./process-flow.md).
 7. **Draft PR.** Opened against the integration target in the shape the `neo-pr-authoring` skill
    defines, carrying the validation report and the review ledger. A human takes it from there.
 
+## Verification / Operations loop in detail
+
+Many draft **PRs** in, one **Feature** proven twice out — once by a human before it ships
+(**verification**, problem–solution fit), once by telemetry after (**KPI settlement**, value fit).
+The two checks are different and stay separate; see
+[process-flow.md § The two fits](./process-flow.md#the-two-fits). The boundaries the loop crosses —
+3 and 4 — are owned by [process-flow.md](./process-flow.md); each space's procedure is owned by its
+agent.
+
+**Verification Space** — the Business Engineer, supported by the **Neo Business Engineer**:
+
+1. **PR review.** A human reviews each task's draft PR and merges it into the integration target.
+   No agent merges.
+2. **Fan-in.** The Neo Business Engineer confirms every task in the feature's BE-approved set has
+   landed — per the [integration mode](./process-flow.md#integration-modes).
+3. **Non-prod deploy and smoke test.** The **Neo Platform Engineer** deploys the integration target
+   at one pinned SHA, using the consuming repo's declared deploy command, and runs the smoke checks.
+   A stale branch or a failed smoke check stops the loop before the BE is involved.
+4. **Verify.** The BE runs each frozen verification step as written, then tries to break it; the
+   verdict on every step is the BE's. On rejection, a recorded triage — mis-built, mis-specified,
+   or both — routes the feature back, specification first. Owned by the `neo-feature-verification`
+   skill.
+
+**Deployment Space** — the Platform Engineer, supported by the **Neo Platform Engineer**:
+
+5. **Release.** On a `verified` record: under Mode A, a draft feature PR whose body carries every
+   child task and the traceability the squash commit needs; a human squash-merges it. Under Mode B,
+   a human flips the flag. Owned by the `neo-release-authoring` skill.
+6. **CD and production smoke test.** The project's own CD deploys; the Neo Platform Engineer watches
+   it, runs read-only production smoke checks, and posts the **deployment record** — the artifact
+   that crosses Boundary 4. It never deploys to production itself.
+
+**Operations Space** — the Site Reliability Engineer, supported by the **Neo SRE**:
+
+7. **Intake.** Each KPI is re-checked for admissibility and its instrumentation confirmed emitting
+   in production; one that fails is unsettleable now, not later.
+8. **Watch.** Post-deploy health against the consuming repo's declared signals. A regression becomes
+   a rollback recommendation; a human decides, and the failure is triaged — with **mis-deployed**
+   added to the three findings.
+9. **Settle.** After each window closes, the pre-registered falsifier is applied literally to
+   production telemetry: `supported`, `falsified`, or `unsettleable`. The verdict goes to the BE;
+   a pattern that implicates the PRD itself goes to the Product Engineer as a strategic-reopen
+   candidate. Owned by the `neo-kpi-settlement` skill.
+
+The records the loop writes — verification, rejection, deployment, intake, settlement — all live on
+the feature's carrier issue, which stays open until its KPIs settle.
+
 ## Key decisions
 
 - **Task = spec.** The framework's central bet: a smaller spec unit is a machine-validatable one.
@@ -123,8 +176,11 @@ owned by [process-flow.md](./process-flow.md).
   lenses); Specification-loop design; `neo-task-authoring` skill + `task-planner` agent, and
   `neo-feature-authoring` skill + `feature-agent`; Coding loop (`technical-engineer`, `researcher`,
   `implementation-planner`, `code-writer`, `code-reviewer`, `validator`, and the
-  `neo-pr-authoring` skill) (GitHub Copilot).
-- **Target (Diagram 2, not yet specced):** Verification / Operations loop.
+  `neo-pr-authoring` skill); Verification / Operations loop (`business-engineer` for verification,
+  `platform-engineer`, `sre`, and the `neo-feature-verification`, `neo-release-authoring`, and
+  `neo-kpi-settlement` skills) (GitHub Copilot).
+- **Still `[target]`:** redrawing the Diagram 2 PDF to match the text; stack plugins that supply
+  platform-specific deploy and telemetry skills.
 
 ## Open threads
 

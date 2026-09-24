@@ -1,15 +1,20 @@
 # Process Flow — Loop Boundaries
 
-How work crosses from the **Specification loop** to the **Coding loop** to the **Verification
-loop**, and back. Terms in **bold** are defined in the [glossary](../glossary.md); the loops
-themselves are described in [architecture.md](./architecture.md).
+How work crosses from the **Specification loop** to the **Coding loop** to the **Verification /
+Operations loop** and into production, and back. Terms in **bold** are defined in the
+[glossary](../glossary.md); the loops themselves are described in [architecture.md](./architecture.md).
 
 **Scope of this document.** This maps the *boundaries* — what artifact crosses, what gate it
-must clear, who owns the gate, and where it goes when it fails. The Coding loop's internals are
-`[live]` and owned by
+must clear, who owns the gate, and where it goes when it fails. The loops' internals are owned by
+their agents, not specced here: the Coding loop by
 [`neo.technical-engineer.agent.md`](../../plugins/neo-core/agents/neo.technical-engineer.agent.md)
-(summarized in [architecture.md § Coding loop in detail](./architecture.md#coding-loop-in-detail));
-the Verification loop's internals remain `[target]`. Neither is specced here.
+(summarized in [architecture.md § Coding loop in detail](./architecture.md#coding-loop-in-detail)),
+and the Verification / Operations loop by
+[`neo.business-engineer.agent.md`](../../plugins/neo-core/agents/neo.business-engineer.agent.md)
+(verification), [`neo.platform-engineer.agent.md`](../../plugins/neo-core/agents/neo.platform-engineer.agent.md)
+(deployment), and [`neo.sre.agent.md`](../../plugins/neo-core/agents/neo.sre.agent.md) (operations)
+(summarized in
+[architecture.md § Verification / Operations loop in detail](./architecture.md#verification--operations-loop-in-detail)).
 
 **Status key:** `[live]` designed and drafted · `[target]` end-state design, not yet specced.
 
@@ -22,12 +27,13 @@ the Verification loop's internals remain `[target]`. Neither is specced here.
 | — | **Product → Specification** | A **PRD** | PRD is segmentable — each segment carries its own business justification | BE (human), on a `neo-product` PRD | `[live]` |
 | **1** | **Specification → Coding** | One **Task** | Task-authoring conformance + BE-approved task set | BE (human) | `[live]` |
 | **2** | **Coding → Verification** | One draft **PR** | **Validation** green + code review approved | Machine, then human | `[live]` |
-| **3** | **Verification → Deployment** | One verified **Feature** | **Verification** steps pass | BE (human judgment) | `[target]` |
-| — | Deployment → Operations | Deployed feature | CD + smoke test pass | Platform Eng Agent | `[target]` |
+| **3** | **Verification → Deployment** | One verified **Feature** + its verification record | **Verification** steps pass, falsification pass included | BE (human judgment) | `[live]` |
+| **4** | **Deployment → Operations** | One deployed feature + its **deployment record** | CD green + production smoke pass | Neo Platform Engineer (machine); received by Neo SRE | `[live]` |
 
 The unit changes at every boundary. That is the point, and it is also where the seams are:
-the spec loop thinks in **features**, the coding loop thinks in **tasks**, and the
-verification loop thinks in **features** again. Boundary 2 is therefore not 1:1 — N task PRs
+the spec loop thinks in **features**, the coding loop thinks in **tasks**, the
+verification loop thinks in **features** again, and operations thinks in a feature's **KPI
+hypotheses**. Boundary 2 is therefore not 1:1 — N task PRs
 fan in to one verifiable feature. How that assembly happens is the
 [integration mode](#integration-modes), a project-level choice with a Neo default.
 
@@ -55,7 +61,7 @@ invokes `feature-agent` or `task-planner` itself.
 or to a fresh research fan-out when the gap is factual rather than analytical.
 
 **Note.** This boundary is numbered 0 because the loops it joins were specced in the other
-order; the chain reads Product → Specification → Coding → Verification.
+order; the chain reads Product → Specification → Coding → Verification → Deployment → Operations.
 
 ---
 
@@ -157,18 +163,56 @@ that proves it, which is what task-level validation runs.
 
 ## Boundary 3 — Verification → Deployment
 
-`[target]`.
+`[live]`. The run and its records are owned by the `neo-feature-verification` skill; the
+**Neo Business Engineer** walks the BE through it.
 
 **What crosses.** One **verified Feature** — all child tasks merged, and the feature's
-verification steps executed and passed.
+verification steps executed and passed — together with its **verification record**, posted on the
+feature's carrier (the issue its tasks name as `Parent feature`).
+
+**Before the gate.** Verification does not start until three things hold:
+
+1. **Fan-in** — every task in the BE-approved set has landed on the integration target (see
+   [Boundary 2 § The fan-in](#boundary-2--coding--verification)). The Neo Business Engineer checks.
+2. **A pinned non-prod deploy** of the integration target — one known SHA, the one the release
+   would carry. The **Neo Platform Engineer** deploys it, using the consuming repo's declared
+   non-prod deploy; under Mode A it refuses an integration branch that is behind the default branch,
+   because verification must run against what will land.
+3. **Green smoke checks** on that SHA. A smoke failure is a deployment problem and never reaches the
+   BE's triage.
+
+Each task PR's own review and merge — Boundary 2's human half — happens in Verification Space
+before any of this, and is always a human's.
 
 **Entry gate.** The BE executes the feature's **verification steps** in a non-prod
 environment and renders a pass/fail judgment on each. These steps are *the contract*, authored
 at feature-definition time. If the BE cannot verify it, it does not deploy.
 
+**The question is "try to make it fail."** A confirming question — *does it work?* — finds what it
+looks for. Verification keeps its name and its core rule but is **falsification-framed** in two
+ways ([framework-gap-analysis.md § G3](../contributing/design/framework-gap-analysis.md)):
+
+- **The goalposts are frozen.** The steps were pre-registered when the BE signed the feature and
+  are run exactly as signed. A wish to change a step mid-run is not an edit; it is evidence the
+  feature was **mis-specified**, and it is recorded that way.
+- **Every step gets an attempt to break it.** After running a step as written, the BE runs at least
+  one disconfirming variation — a boundary input, the wrong actor, an interrupted flow. The agent
+  may suggest variations; the BE chooses, runs, and judges them. The feature is `verified` only if
+  every step, attempt included, passes.
+
+The run is pinned to the deployed SHA; if that SHA changes mid-run, the run is void.
+
 **Gate owner.** The BE, exercising human judgment. This is the inverse of Boundary 2's
 machine gate, and deliberately so: **verify features, validate tasks; humans verify, machines
-validate.**
+validate.** The Neo Business Engineer sequences, suggests, and records; it never renders a verdict.
+
+**On pass — the release.** The Neo Platform Engineer prepares it, and a human performs it. Under
+Mode A it opens a **draft** feature PR from the integration branch to the default branch, whose body
+closes every child task and carries the traceability lines the squash commit needs; a human
+squash-merges it (see [Traceability under squash](#traceability-under-squash)). Under Mode B a human
+turns the feature's flag on in production. Either way, production then changes only through the
+project's own CD — never by an agent's hand — and the feature moves on to
+[Boundary 4](#boundary-4--deployment--operations).
 
 **On rejection — the triage.** A failed verification does not carry its own diagnosis. It says
 the feature does not behave as expected; it does not say why. Resolving that is a **human
@@ -192,7 +236,8 @@ first, then re-decompose, then build. Never run the two repairs in parallel.
 recorded. Defaulting a failed verification to "write more code" is precisely how a
 mis-specified feature gets built twice.
 
-**Record with every rejection:**
+**Record with every rejection** — posted on the feature's carrier beside the verification record,
+in the shape the `neo-feature-verification` skill defines:
 
 - Which verification step failed.
 - Observed behavior vs. the behavior the contract promised.
@@ -200,13 +245,104 @@ mis-specified feature gets built twice.
 - Where it routed, and what changed as a result.
 
 This record is the loop's learning signal. A feature that comes back mis-specified twice is
-telling you something about the Specification loop, not about the coders.
+telling you something about the Specification loop, not about the coders. Mis-specified findings
+that pile up across the features of one PRD segment say something about the PRD itself — see
+[Strategic-reopen candidates](#strategic-reopen-candidates-provisional).
+
+---
+
+## Boundary 4 — Deployment → Operations
+
+`[live]`. Formerly an unnumbered row with no defined boundary: Diagram 2 draws **Deployment Space**
+and **Operations Space** as separate regions, with Operations Space floating outside every loop.
+This section defines the line between them.
+
+### The three spaces
+
+The fourth loop runs through three spaces, each with its own human owner and Neo agent:
+
+| Space | Holds | Human | Agent | Ends when |
+| --- | --- | --- | --- | --- |
+| **Verification Space** | Task PR review and merge, fan-in, the non-prod deploy for verification, the BE's verification and triage | Business Engineer | Neo Business Engineer (+ Neo Platform Engineer for the deploy) | The feature is `verified` — Boundary 3 |
+| **Deployment Space** | Release mechanics: the Mode A feature PR and squash or the Mode B flag release, production CD, production smoke checks, and executing a rollback | Platform Engineer | Neo Platform Engineer | The feature is live in production, its CD run is green, and its production smoke checks pass — Boundary 4 |
+| **Operations Space** | The *running* feature over time: instrumentation intake, the post-deploy watch, and KPI settlement | Site Reliability Engineer | Neo SRE | Every KPI the feature shipped with has settled |
+
+```mermaid
+flowchart LR
+  subgraph SPEC[Specification loop]
+    F[Feature, BE-signed] --> TS[Task set, BE-approved]
+  end
+  subgraph CODE[Coding loop]
+    T[Task] --> PR[Draft task PR]
+  end
+  subgraph VER[Verification Space]
+    RV[Human review + merge] --> FI[Fan-in] --> NP[Non-prod deploy + smoke] --> V{BE verifies}
+  end
+  subgraph DEP[Deployment Space]
+    REL[Feature PR / flag release] --> HM[Human squash-merge / flag flip] --> CD[Project CD + prod smoke]
+  end
+  subgraph OPS[Operations Space]
+    IN[Intake: KPIs emitting?] --> W[Post-deploy watch] --> S{KPI settlement}
+  end
+  TS -- "B1: one task" --> T
+  PR -- "B2: draft PR" --> RV
+  V -- "B3: verified" --> REL
+  CD -- "B4: deployment record" --> IN
+  V -- "rejected: mis-built" --> T
+  V -- "rejected: mis-specified / both" --> F
+  W -- "rollback: human decides" --> REL
+  S -- "falsified / unsettleable" --> F
+  S -. "strategic-reopen candidate" .-> PRD[Product loop: PRD]
+```
+
+### The boundary
+
+**What crosses.** One **deployed feature** and its **deployment record**, posted on the feature's
+carrier: what was released (the squash SHA, or the flag), the CD run and its result, each production
+smoke check and its result, the rollback unit, and the feature's KPIs copied verbatim from the signed
+feature. Its shape is owned by the `neo-release-authoring` skill.
+
+**Gate.** The project's CD run for the released commit succeeded, and every production smoke check
+passed. Both are machine checks. Smoke checks are read-only by rule — a check that would change
+production state is not run.
+
+**Gate owner.** The **Neo Platform Engineer** runs the checks and writes the record: this is a
+machine gate, like Boundary 2's validation. It never *causes* the deploy. Production changes only
+through the project's own CD after a human merge, or by a human flipping a flag.
+
+**Receiving side.** The **Neo SRE**'s intake, the way the Technical Engineer's intake receives
+Boundary 1. It re-checks each KPI's admissibility (the [falsifiability gate](#falsifiability-is-a-gate-on-kpi-authoring)
+and the [captive-population rule](#internal-line-of-business-portfolios)) and confirms each KPI's
+instrumentation is **emitting in production**. A KPI that fails either check is recorded
+**unsettleable at intake** and routed to the Specification loop at once — waiting out its window
+cannot repair it. Intake opens the settlement watch; the feature's carrier stays open until every KPI
+has settled, so the open, deployed features are Operations' outstanding debt to the Specification
+loop.
+
+**On failure — rollback, then triage.** A failed CD run, a failed production smoke check, or a
+post-deploy regression the Neo SRE detects against the health signals the consuming repo declares
+all end the same way: a **rollback recommendation** to the humans, with evidence. A human decides.
+The Neo Platform Engineer prepares the rollback — a draft revert of the feature's squash commit
+under Mode A (feature-level revert is one commit; that is what Mode A buys), the flag-off
+instruction under Mode B — and a human performs it.
+
+A rollback is not a diagnosis. The failure then goes through the same triage as a Boundary 3
+rejection, with one finding added, because after verification the environment can be what's wrong:
+
+| Finding | Meaning | Routes to |
+| --- | --- | --- |
+| Mis-built · Mis-specified · Both | As at [Boundary 3](#boundary-3--verification--deployment). | As at Boundary 3, with the same ordering rule. |
+| **Mis-deployed** | The contract and the code are both fine; the release, configuration, or environment is wrong. | **Deployment Space** — the human Platform Engineer. |
+
+Without the fourth finding, an environment fault defaults to "write more code" — the failure the
+triage exists to prevent. Boundary 3 needs no such row: a non-prod environment fault fails the smoke
+checks and stops *before* the BE verifies.
 
 ---
 
 ## Feedback edges
 
-Four edges run backward. The two inside the coding loop are designed.
+Six edges run backward. All are designed; the last is deliberately provisional.
 
 **Review → Implement** `[live]` — inside the coding loop. Reviewer findings return to the
 writer verbatim. Bounded: a repeated finding with no progress escalates to a human.
@@ -215,14 +351,46 @@ writer verbatim. Bounded: a repeated finding with no progress escalates to a hum
 reports `fail` or `unproven` becomes a new step, reviewed like any other, before the task is
 validated again. Bounded the same way: a criterion that fails twice with no progress escalates.
 
-**Verification → Coding or Specification** `[target]` — Boundary 3 rejection, routed by BE
-diagnosis as above.
+**Verification → Coding or Specification** `[live]` — Boundary 3 rejection, routed by BE
+diagnosis as above. The Neo Business Engineer runs the triage interview and carries the route:
+new tasks under the unchanged feature, or a re-signed feature and a re-decomposed task set.
 
-**Operations → Specification** `[target]` — the long edge, and the one nothing in the repo
-currently draws. A feature's **KPIs** are authored as a hypothesis; that hypothesis is only
-settleable in production, from **telemetry**, after the window closes. Operations owes the
-Specification loop a verdict on every feature that shipped with KPIs. See
-[The two fits](#the-two-fits) — this edge carries the second one.
+**Operations → Deployment** `[live]` — rollback. A failed handover or a post-deploy regression
+becomes a rollback recommendation; a human decides, the Neo Platform Engineer prepares it, and the
+failure is then triaged as at [Boundary 4](#boundary-4--deployment--operations).
+
+**Operations → Specification** `[live]` — the long edge. A feature's **KPIs** are authored as a
+hypothesis; that hypothesis is only settleable in production, from **telemetry**, after the window
+closes. Operations owes the Specification loop a verdict on every feature that shipped with KPIs.
+The Neo SRE settles each KPI against its pre-registered falsifier — `supported`, `falsified`, or
+`unsettleable` — and routes the last two to the BE, who decides what the feature needs. The
+procedure is owned by the `neo-kpi-settlement` skill. See [The two fits](#the-two-fits) — this
+edge carries the second one.
+
+**Operations or Verification → Product** `[live]`, provisional — the strategic edge. Most reopens
+are tactical: one feature goes back to the Specification loop. A few failures point past the feature
+at the premise of the PRD it came from. Those raise a *candidate* for the human Product Engineer,
+never an automatic reopen.
+
+### Strategic-reopen candidates (provisional)
+
+What earns a *strategic* reopen — one that reopens the PRD and the system it defined, rather than a
+feature — is an open question ([framework-gap-analysis.md § G4](../contributing/design/framework-gap-analysis.md)).
+Neo does not decide it. It raises a **candidate** when any of these holds:
+
+1. **Two or more falsified KPIs serve the same PRD goal**, across features. Raised by the Neo SRE at
+   settlement.
+2. **A falsified KPI on a feature that delivers a P0 requirement** — the PRD's own must-have, per the
+   feature's Source line. Raised by the Neo SRE at settlement.
+3. **Two or more mis-specified verification findings trace to the same PRD segment**, across
+   features. Raised by the Neo Business Engineer at verification.
+
+A candidate goes to the human **Product Engineer**, with the records that raised it, and the Product
+Engineer decides whether the Product loop reopens. The thresholds are a first guess: how each
+candidate was decided is recorded, because that record is what will show whether they are right.
+These signals depend on each feature naming its source — the PRD segment, the requirement ids and
+priorities it delivers, and the PRD goal each KPI serves — which the `neo-feature-authoring` skill
+requires.
 
 ---
 
@@ -262,9 +430,12 @@ Point 2 has a build consequence: if the telemetry does not exist yet, emitting i
 scope for the feature. A KPI whose instrumentation never shipped is unsettleable, and the
 outer loop silently breaks.
 
-This tightens the `neo-feature-authoring` skill, which today says only that KPIs are optional and
-to "omit rather than invent one with no credible basis." Credible is now testable — see
-`todo.md` § 14.
+The `neo-feature-authoring` skill enforces this gate: KPIs stay optional, but a KPI missing any
+of the four is dropped, not signed. It also carries a **baseline** with each KPI — required under
+captivity (below) and whenever the falsifier is relative — and signing the feature **freezes** the
+falsifier, just as it freezes the verification steps. The Task Planner carves the work that emits
+any instrumentation a KPI needs, and the Neo SRE re-checks all of it at
+[Boundary 4](#boundary-4--deployment--operations) intake.
 
 ### Internal line-of-business portfolios
 
@@ -326,7 +497,9 @@ deliberately breaks the alignment and buys smaller batch size with it.
 **Flow.** Each task PRs into a long-lived branch for its parent feature, reviewed and
 validated there. When the last child task lands, that branch *is* the verification target —
 the BE runs the feature's verification steps against a non-prod deploy of it. On verification
-pass, the branch squash-merges to the default branch: **one commit, one feature.**
+pass, the branch squash-merges to the default branch: **one commit, one feature.** The Neo
+Platform Engineer opens that merge as a draft feature PR once the verification record says
+`verified` at the branch's head; a human squash-merges it.
 
 The integration branch is named `feature/<feature-id>-<short-name>`. The Neo Business Engineer
 creates it before fanning out a feature's tasks; a Technical Engineer run directly on one task
@@ -339,8 +512,10 @@ Traceability below and the `neo-pr-authoring` skill).
 non-prod with no additional machinery. Fan-in is solved structurally rather than tracked.
 
 **Obligations.** The feature branch must be refreshed from the default branch regularly to
-limit drift. Non-prod must be deployable from an arbitrary feature branch. The squash commit
-body must carry child task IDs — see Traceability below.
+limit drift — by a human, because a refresh can change behavior; verification refuses a stale
+branch. Non-prod must be deployable from an arbitrary feature branch, with the command declared
+in the consuming repo's `AGENTS.md`. The squash commit body must carry child task IDs — see
+Traceability below.
 
 **Costs.** Long-lived branches, integration risk deferred to merge time, merge pain that
 grows with feature size.
@@ -353,7 +528,9 @@ single judgment anyway. The pain shows up early, at decomposition, rather than l
 
 **Flow.** Each task PRs directly to the default branch, its behavior gated by a feature flag.
 A completion tracker fires when every child task of a feature has merged. Verification runs in
-non-prod with that feature's flag enabled.
+non-prod with that feature's flag enabled. On verification pass, the release is turning the flag
+on in production — a human's action; the Neo Platform Engineer records it and the cleanup it
+leaves owed.
 
 **Entry conditions — all must hold.** Do not choose Mode B without:
 
@@ -398,14 +575,26 @@ setup; it cannot be reconstructed after the merge. On GitHub, listing each task 
 `Closes #<task>` also closes the tasks when the squash lands on the default branch — the Mode A
 task PRs could not, because their base was the feature branch.
 
+**Who executes it.** The Neo Platform Engineer writes the traceability into the draft feature PR —
+its title becomes the squash subject, and its body lists `Closes #<task>` for every child and the
+parent feature as `Refs #<feature>` (the feature itself closes only once its KPIs settle). A human
+squash-merges it **with the PR body as the commit message**, pasting it if the repository's default
+squash message differs. The shape is owned by the `neo-release-authoring` skill. No agent merges.
+
 ---
 
 ## Related open items
 
-- Diagram 2's expanded sub-box is labeled "Specification Loop" but contains the Coding loop
-  phases (Research → Planner → Implement → Testing → Review → PR). Drawing bug; fix before it
-  propagates into docs. When redrawn, `Testing` should read as a step label (interleaved steps,
-  see Boundary 2) and a `Validate` phase belongs between `Review` and `PR`.
-- `Operations Space` is drawn outside all the loops in Diagram 2, with no boundary defined
-  between Deployment and Operations. Treated above as an implicit fourth boundary.
+- **The Diagram 2 PDF (`docs/guides/Agentic Engineering_*.pdf`) is stale and still needs
+  redrawing.** Its two drawing bugs are resolved *in text*, which now wins over the drawing:
+  - The expanded sub-box labeled "Specification Loop" contains the Coding loop phases. The Coding
+    loop's own docs are authoritative (Boundary 2; `architecture.md` § Coding loop in detail):
+    `Testing` is a step label on interleaved steps, not a phase, and `Validate` sits between
+    `Review` and `PR`.
+  - `Operations Space` floated outside every loop with no boundary from Deployment. It is now
+    defined — [Boundary 4](#boundary-4--deployment--operations), with the three spaces and a
+    Mermaid drawing of the whole chain.
+- **Mode B flag cleanup has no mechanism.** The release record lists the flag as cleanup owed, but
+  who removes it, and whether removal is a Neo Task, is undecided — `neo-task-authoring` forbids
+  plumbing-only tasks, and flag *removal* changes code.
 - See [`todo.md`](../../todo.md) for repo-level defects found alongside this mapping.
