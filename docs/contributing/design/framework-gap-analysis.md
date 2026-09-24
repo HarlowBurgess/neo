@@ -17,6 +17,12 @@ contract. The gaps it names (G1–G5) are reconciled against the live GitHub bac
 below; the backlog, not this file, is the source of truth for what is being worked. The baseline
 was taken at commit `efd6a8f` (latest `main`, includes PR #44 `preToolUse` enforcement).
 
+> **Update, 2026-09-24 (neo-core 2.4.0).** The Verification / Operations loop shipped, and it made a
+> design call on the two gaps that sit on it. **G3** and **G4** move from *Untracked* to *Partial*;
+> the reasoning is under each note below. This is an update to two rows, **not a re-baseline**:
+> G1, G2, and G5 are unchanged, and re-scoring them still requires re-running the whole analysis.
+> Where a note below and the update disagree, the update is current.
+
 ---
 
 ## The framework (the yardstick)
@@ -105,8 +111,8 @@ backlog (`gh issue list --state open`) and the untracked loose ends in
 | --- | --- | --- | --- | --- |
 | **G1** — problem identification / **binding constraint** | PRD → Feature | none (#41/#39 are spec *intake*, not framing) | **Untracked** | No "is this the *binding constraint*?" test. The home is live (`feature-agent`), but its gate is only "segment has a business justification." `neo-product` adds constraint *analysis* upstream (see the note below); it is not a gate here. |
 | **G2** — kill-condition gate at **build entry** | Boundary 1 | `todo.md` loose end only (back-door / KPI slice) | **Partial** | The loose end folds the *existing* KPI gate into the skill. The stronger move — a testability gate at the **front door** — is untracked, and is a genuine open design question. |
-| **G3** — **falsification-framed** verification | Boundary 3 | none (#14 is SRE/Platform-Eng ops agents) | **Untracked** | The default question is confirmatory ("does the feature behave as expected?"). Mitigated by the mis-built / mis-specified / both triage, but the word and the default still ask "does it work." |
-| **G4** — **strategic vs tactical** framing | whole spec loop | none | **Untracked** | Neo has one framing cadence (PRD → Feature → Task). No concept of a signal big enough to reopen the *system* vs spawn a *feature*. Includes the unresolved "what earns a strategic reopen?" |
+| **G3** — **falsification-framed** verification | Boundary 3 | the Verification / Operations loop (neo-core 2.4.0) | **Partial** (was Untracked) | Addressed in substance: steps frozen at sign-off, and a recorded attempt to break every step. The **word** "verification" is kept by design. No team-held kill condition; see the note. |
+| **G4** — **strategic vs tactical** framing | whole spec loop | the Verification / Operations loop (neo-core 2.4.0) | **Partial** (was Untracked) | Three provisional *strategic-reopen candidate* signals now route to the human Product Engineer. The open question is narrowed, not closed: the thresholds are a first guess, and a candidate is never an automatic reopen. |
 | **G5** — single-human vs **team-with-veto** entry gate | Boundary 1 | none | **Untracked (likely by-design)** | The entry gate is a single human (BE). Robust against committee-softening, but is the single point of failure principle 7 flags. |
 
 ### Notes on each
@@ -144,10 +150,47 @@ the mis-built / mis-specified / both triage
 forces a diagnosis rather than a reflexive "write more code." But the default question and the
 word "verify" still lean confirmatory.
 
+*Update, 2026-09-24 — Partial.* Boundary 3 is now **falsification-framed without being renamed**
+([process-flow.md § Boundary 3](../../concepts/process-flow.md#boundary-3--verification--deployment)).
+Two mechanisms carry it:
+
+- **Pre-registration.** The feature's verification steps, and its KPI falsifiers, are frozen at BE
+  sign-off. A wish to change a step mid-run is recorded as a *mis-specified* finding, never made as
+  an edit. Principle 6 names movable goalposts as where the bias lives, and pre-registration as the
+  real fix. Neo already authored proof at definition time; freezing it closes the gap that remained.
+- **A falsification pass on every step.** After running a step as written, the BE makes at least
+  one recorded, deliberate attempt to break it. The default question is now "try to make it fail."
+
+The word stays "verification" deliberately. It is the load-bearing half of Neo's core rule —
+*verify features, validate tasks; humans verify, machines validate* — and it is what separates the
+human, problem–solution-fit check from the telemetry-driven value-fit check. Renaming the gate
+"Falsify" would blur the **two fits**, which this doc lists among what Neo must not regress.
+
+G3 is *Partial* rather than resolved for two reasons:
+- the falsification attempt is the BE's own, so a BE who wants the feature to pass still chooses
+  their own attempts;
+- nothing makes the kill condition team-held, which ties back to G5.
+
 **G4 — one framing cadence, one time constant.** Neo has no concept of *strategic* framing
 (defines the system, near-irreversible) distinct from *tactical* framing (within the system,
 reversible). Every reopen is a feature-sized reopen. The dialog's unclosed question travels with
 this gap: **what signal earns a strategic reopen?**
+
+*Update, 2026-09-24 — Partial.* The Verification / Operations loop gives Neo a second reopen
+cadence, but not an answer. Tactical reopens remain the default: a falsified KPI or a rejected
+verification goes back to one feature. Three provisional signals now raise a **strategic-reopen
+candidate**, owned by
+[process-flow.md § Strategic-reopen candidates](../../concepts/process-flow.md#strategic-reopen-candidates-provisional):
+
+- two or more falsified KPIs serving the same PRD goal;
+- a falsified KPI on a feature that delivers a P0 requirement;
+- two or more mis-specified verification findings from the same PRD segment.
+
+Each routes to the human Product Engineer, who decides whether the Product loop reopens. That
+matches principle 8's asymmetry — strategic framing is slow and near-irreversible, so the signal
+*nominates* and a human *decides*. G4 stays *Partial* because the thresholds are a first guess. The
+loop records how each candidate was decided so they can be tested, and the open question below is
+narrowed, not closed.
 
 **G5 — single-BE gate.** Principle 7 wants a team-held gate with single-member veto. Neo
 deliberately uses a single human (the BE), which is the same design that removes the hand-off BA
@@ -161,7 +204,9 @@ defect — recorded here as an open question rather than a gap to close.
 Carried forward from the dialog; none are settled:
 
 1. **What signal earns a *strategic* reopen** (system-level) vs a *tactical* one
-   (feature-level)? (G4, principle 8.)
+   (feature-level)? (G4, principle 8.) *Narrowed 2026-09-24:* three provisional candidate signals
+   now exist, and a human decides each candidate. Still open: whether those thresholds are right,
+   and whether any signal should ever reopen without a human.
 2. **Is Neo's back-door-only kill condition the right placement**, or should Boundary 1 also
    carry a front-door testability gate? (G2, principles 3–6.)
 3. **Is the single-BE entry gate correct**, or does testability warrant a team-held gate with
