@@ -32,6 +32,10 @@ This script makes the remaining invariants executable:
     session, and `NEO_ENFORCE_GUARDRAILS=0` could not rescue it because the script
     that reads that variable is the thing that never ran;
   * every Copilot agent's `agents:` allowlist references a real agent `name:`;
+  * every Neo skill an agent's prompt tells it to load (`` `neo-x` skill `` or
+    `**neo-x** skill`) ships in that agent's OWN plugin. A plugin is installed
+    standalone and cannot reach another plugin's files, and a skill that isn't there
+    is not an error — the agent simply never loads it and improvises in its place;
   * any agent that delegates (non-empty `agents:`) also grants the `agent`/`Task`
     delegation tool in its `tools:` allowlist;
   * every agent's `tools:` allowlist grants at least one tool the Copilot CLI
@@ -619,6 +623,31 @@ def check_component_paths(plugin: Path) -> None:
         )
 
 
+# A Neo skill named as something to load: "Load the `neo-x` skill", "satisfy the
+# **neo-x** skill", "the `neo-x` skill owns it". Only `neo-`-prefixed names are Neo's
+# (plugin-contract.md § 4), so vendored skills and plugin names never match.
+_SKILL_REF_RE = re.compile(r"(?:`|\*\*)(neo-[a-z0-9]+(?:-[a-z0-9]+)*)(?:`|\*\*)\s+skill\b")
+
+
+def check_skill_refs(plugin: Path) -> None:
+    """Every Neo skill an agent is told to load must ship in the agent's own plugin.
+
+    Plugins are installed standalone and cannot reference each other's files, which is
+    why `neo-evidence-standard` is duplicated into both plugins. A prompt that loads a
+    skill its plugin doesn't carry installs cleanly and fails silently at runtime: the
+    skill never loads and the agent improvises the format it was supposed to follow.
+    """
+    name = plugin.name
+    for f in copilot_agent_files(plugin):
+        for ref in sorted(set(_SKILL_REF_RE.findall(f.read_text()))):
+            if not (plugin / "skills" / ref / "SKILL.md").is_file():
+                errors.append(
+                    f"[{name}] {f.name} tells the agent to use the `{ref}` skill, but "
+                    f"plugins/{name}/skills/{ref}/SKILL.md does not exist. A plugin cannot "
+                    f"load another plugin's skills — ship a copy in this plugin, or fix the name"
+                )
+
+
 def check_plugin(plugin: Path) -> None:
     name = plugin.name
 
@@ -631,6 +660,9 @@ def check_plugin(plugin: Path) -> None:
     # 1b. Declared component paths must match what's actually on disk, in both
     #     directions — an undeclared or unresolvable path fails silently at runtime.
     check_component_paths(plugin)
+
+    # 1c. Every Neo skill an agent is told to load must ship in this same plugin.
+    check_skill_refs(plugin)
 
     # 2. Every Copilot agent's `agents:` allowlist must reference a real name:.
     #    Copilot resolves delegated agents by their `name:` field, not filename,
