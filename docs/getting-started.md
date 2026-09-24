@@ -14,21 +14,22 @@ New to the vocabulary? Read the [glossary](./glossary.md) first, then
 
 ## What's live vs. target
 
-Neo is designed as four loops (see [architecture.md](./concepts/architecture.md)). The first two
+Neo is designed as four loops (see [architecture.md](./concepts/architecture.md)). The first three
 are built:
 
 | Loop | What it does | Status |
 | --- | --- | --- |
 | **Product loop** | Problem/opportunity → research → viability/desirability/feasibility → **PRD** | `[live]` |
 | **Specification loop** | PRD/requirements → **Feature** (business, human-signed) → **Task** (spec, ≈ 1 PR) | `[live]` |
-| **Coding loop** | Research → plan → implement → review → draft PR | `[live]` |
+| **Coding loop** | Task → research → plan → implement and review → validate → draft PR | `[live]` |
 | **Verification / Operations** | PR review, smoke/user test, CD, telemetry | `[target]` |
 
-So today you use Neo to **turn intent into a signed-off, machine-checkable task set** — and, if you
-don't already have a PRD, to produce one first. The issue→PR pipeline is the direction of travel,
-not a claim about what runs end-to-end yet. The `code-writer`, `code-reviewer`, `researcher`, and
-`implementation-planner` agents ship, but the loop that orchestrates them autonomously is still
-`[target]`.
+So today you use Neo to **turn intent into a signed-off, machine-checkable task set** — producing a
+PRD first if you don't have one — and then to **carry each task to a validated draft PR**. The
+Coding loop checks the task on arrival, plans it into steps you approve, implements and reviews
+each step, validates every criterion on the finished branch, and stops at a draft PR for a human.
+What happens after the PR — verifying the feature, deploying it, watching it in production — is
+still `[target]`.
 
 ## The 60-second model
 

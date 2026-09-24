@@ -15,6 +15,11 @@ shipped manifests (#95 — the scripts remain, opt-in), and the **Product loop**
 as a second plugin, `neo-product` (PR #70, plus `product.researcher` in PR #71) — five agents
 and three skills producing a PRD upstream of the Specification loop.
 
+The **Coding loop** is now `[live]` too (neo-core 2.3.0): the Technical Engineer checks each task
+at intake, targets its PR by integration mode, and gates the draft PR on a new **Neo Validator**
+proving every validation criterion; the `neo-pr-authoring` skill owns the PR's shape. The
+interleaved-vs-phased testing question is settled — interleaved labeled steps.
+
 ## Where the work is tracked
 
 Run `gh issue list --state open` for the live backlog. Current shape:
@@ -40,7 +45,8 @@ Run `gh issue list --state open` for the live backlog. Current shape:
   Consistency Audit; blocked on gh-aw v0.83.1 to recompile the workflow lock file.
 - **Verification agents** — #14 SRE / Platform Eng (`phase: core`, not built).
 - **Binding + roles** — #7 abstract-role → specialist binding scheme, #10 abstract role
-  defs (revisit the interleaved-vs-phased testing question, `process-flow.md` § Boundary 2).
+  defs (the interleaved-vs-phased testing question it raised is resolved: interleaved labeled
+  steps, `process-flow.md` § Boundary 2).
 - **Validation** (`phase: validation`) — #23 E2E dry run, #24 Copilot install+run,
   #27 parallel Coder `/fleet`. Blocked until the specialist stack lands.
 - **Docs** — #25 README + "add a specialist" template.
@@ -65,8 +71,9 @@ Run `gh issue list --state open` for the live backlog. Current shape:
 
 These aren't issues because their home is the owning doc; listed here so they're findable:
 
-- Testing modeled two ways + Diagram 2 sub-box mislabel → `docs/concepts/process-flow.md`
-  § "Drift to reconcile" and the drawing-bug note near the end.
+- Diagram 2 sub-box mislabel (and redrawing `Testing` as a step label, with a `Validate` phase) →
+  `docs/concepts/process-flow.md`, the drawing-bug note near the end. The testing-model drift
+  itself is resolved (§ Boundary 2).
 - Consumer `AGENTS.md` as a hard prerequisite + where the integration mode is declared →
   `docs/contributing/reference/stack-plugin-contract.md` (project tier) and its "Who authors the consuming repo's `AGENTS.md`?"
   open question.

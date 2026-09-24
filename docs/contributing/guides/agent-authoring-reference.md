@@ -119,12 +119,12 @@ a known alias nor a known host tool is reported as a probable typo.
 `model` and `reasoningEffort` are chosen per role, never left to the default. What Neo ships
 today across both plugins, which is the reference for new agents:
 
-| Role shape                                                                         | Model             | `reasoningEffort` | Example                                                                                                      |
-| ---------------------------------------------------------------------------------- | ----------------- | ----------------- | ------------------------------------------------------------------------------------------------------------ |
-| Planning, decomposition, and orchestration of a whole loop — the hardest reasoning | `Claude Opus 5`   | `high`            | `neo.implementation-planner`, `neo.product.engineer`, `neo.business-engineer`                                |
-| Review, authoring, spec work, facilitation                                         | `Claude Sonnet 5` | `high`            | `neo.code-reviewer`, `neo.feature-agent`, `neo.design.thinking`, `neo.systems.thinking`, `neo.product.coach` |
-| Orchestration and code generation                                                  | `Claude Sonnet 5` | `medium`          | `neo.technical-engineer`, `neo.code-writer`                                                                  |
-| Evidence gathering, where a fabricated citation is expensive                       | `Claude Sonnet 5` | `medium`          | `neo.researcher`, `neo.product.researcher`                                                                   |
+| Role shape                                                                         | Model             | `reasoningEffort` | Example                                                                                                                       |
+| ---------------------------------------------------------------------------------- | ----------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Planning, decomposition, and orchestration of a whole loop — the hardest reasoning | `Claude Opus 5`   | `high`            | `neo.implementation-planner`, `neo.product.engineer`, `neo.business-engineer`                                                 |
+| Review, validation, authoring, spec work, facilitation                             | `Claude Sonnet 5` | `high`            | `neo.code-reviewer`, `neo.validator`, `neo.feature-agent`, `neo.design.thinking`, `neo.systems.thinking`, `neo.product.coach` |
+| Orchestration and code generation                                                  | `Claude Sonnet 5` | `medium`          | `neo.technical-engineer`, `neo.code-writer`                                                                                   |
+| Evidence gathering, where a fabricated citation is expensive                       | `Claude Sonnet 5` | `medium`          | `neo.researcher`, `neo.product.researcher`                                                                                    |
 
 The rule behind the table: raise reasoning where a wrong answer is expensive to _detect_
 (review, planning), lower it where the work is mechanical or the output is checked immediately.

@@ -26,7 +26,7 @@ person, "Neo Business Engineer" is always software.
 
 **Neo Product Engineer** `[live]` — The agent (`neo.product.engineer`, `neo-product`) that supports the human Product Engineer by running the **Product loop**: fans out **Product Researchers**, sequences the three lenses (**Product Coach**, **Design Thinking Facilitator**, **Systems Thinking Facilitator**), and drives the result to a **PRD**. It orchestrates rather than authors — the analysis belongs to the lenses, the PRD drafting to the Product Coach. Canonical `name:` is **Neo Product Engineer**.
 
-**Neo Technical Engineer** `[live]` — The agent (`neo.technical-engineer`, `neo-core`) that supports the human Technical Engineer by taking a **Task** (filed as a GitHub Issue or Azure DevOps story) and driving it through research → plan → implement → review to a draft PR, delegating implementation to **Code Writer** and review to **Code Reviewer**. Canonical `name:` is **Neo Technical Engineer**.
+**Neo Technical Engineer** `[live]` — The agent (`neo.technical-engineer`, `neo-core`) that supports the human Technical Engineer by running the **Coding loop**: it takes a **Task** (filed as a GitHub Issue or Azure DevOps story), checks it at intake, and drives it through research → plan → implement → review → validate to a draft PR, delegating implementation to **Code Writer**, review to **Code Reviewer**, and validation to **Validator**. Canonical `name:` is **Neo Technical Engineer**.
 
 **Product Researcher** `[live]` — Agent (`neo-product`) that answers one scoped product-discovery question — existing code and docs, prior decisions, users, market context. Fanned out in parallel, one question each. Distinct from **Researcher** below, which investigates *how the code works* for an already-specified task.
 
@@ -36,11 +36,15 @@ person, "Neo Business Engineer" is always software.
 
 **Systems Thinking Facilitator** `[live]` — Agent (`neo-product`) for the **feasibility & dynamics** lens: how does this behave in the real world?
 
-**Researcher** `[target]` — Agent that gathers context feeding the Specification and Coding loops.
+**Researcher** `[live]` — Agent (`neo-core`) that answers one scoped question about the codebase for a task — affected code, existing patterns, constraints, risks. Fanned out in parallel by the Technical Engineer, one question each.
 
-**Implementation Planner** `[target]` — The `Research → Plan → Implement` phase in the Coding loop that breaks a **task** into **steps**. Named for what it produces, matching **Task Planner** below.
+**Implementation Planner** `[live]` — The Coding-loop agent that breaks a **task** into **steps**, and maps every validation criterion to the test or check that proves it. Named for what it produces, matching **Task Planner** below.
 
-**Team Leader / Coder** `[target]` — Coding-loop agents; the Team Leader coordinates Coders, who implement using stack skills.
+**Code Writer** `[live]` — Coding-loop agent that implements and commits exactly one **step**, using whatever stack skills match the work. Diagram 2's "Coder".
+
+**Code Reviewer** `[live]` — Coding-loop agent that reviews one step's commit — feature/fix code or test code — and approves it or returns findings to the Code Writer.
+
+**Validator** `[live]` — Coding-loop agent that runs **validation** for a whole task: once every step is approved, it runs the check behind each validation criterion on the branch head and reports pass, fail, or unproven. The draft PR opens only on a clean result.
 
 **SRE Agent / Platform Engineering Agent** `[target]` — Operations & Deployment agents.
 
@@ -52,7 +56,7 @@ person, "Neo Business Engineer" is always software.
 
 **Task** `[live]` — The spec-level unit; the spec analog. Derives from exactly one feature, sized to ≈ one pull request, and carries machine-checkable validation criteria. Shrinking the spec to task grain is Neo's central move.
 
-**Step** `[target]` — A unit inside the Coding loop, ≈ one commit. Authored during implementation, not during decomposition.
+**Step** `[live]` — The Coding loop's unit of work: one change labeled `[feature]` or `[test]`, landing as one commit (plus review fix-ups). Authored by the **Implementation Planner** inside the Coding loop, not during Feature→Task decomposition. Test steps are interleaved with the feature steps they cover; testing is not a separate phase.
 
 ## Proof
 
@@ -70,13 +74,15 @@ person, "Neo Business Engineer" is always software.
 
 **Specification loop** `[live]` — PRD→Feature and Feature→Task; problem space into solution space. Human-gated: *Start Human, Finish Human; Critical Thinking required.*
 
-**Coding loop** `[target]` — `Research → Planner → Implement` across Build, Validation, and Verification spaces. Ends at Review → Code Review → PR.
+**Coding loop** `[live]` — One **Task** → intake → research → plan → implement and review (interleaved steps) → validate → draft **PR**. Run by the **Neo Technical Engineer**; ends at [Boundary 2](./concepts/process-flow.md#boundary-2--coding--verification).
 
 **Verification loop / Operations & Deployment** `[target]` — PR Review, Smoke Test, User Test, CD, Telemetry. *Human Judgement Required.*
 
 ## Artifacts
 
 **neo-task-authoring** `[live]` — The skill defining what a clean task is: fields, validation-criteria format, one-PR sizing rule.
+
+**neo-pr-authoring** `[live]` — The skill defining the draft **PR** that crosses Boundary 2 (Coding → Verification): which branch it targets under each integration mode, its required body sections — including the validation report and review ledger — and its closing keyword.
 
 **Task handoff schema** `[live]` — The normative definition of the **Task** artifact that crosses Boundary 1 (Specification → Coding): its carrier (a Task *is* the GitHub Issue / Azure DevOps story it is filed as), fields, and on-harness format. See [`task-handoff-schema.md`](./contributing/reference/task-handoff-schema.md).
 

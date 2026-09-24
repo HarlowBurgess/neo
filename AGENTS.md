@@ -50,7 +50,7 @@ The shipped agents:
 
 | Plugin                 | Agents                                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins/neo-core/`    | `business-engineer` (Specification-loop orchestrator), `technical-engineer` (Coding-loop orchestrator — start here for one task), `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`, `feature-agent`, `task-planner` |
+| `plugins/neo-core/`    | `business-engineer` (Specification-loop orchestrator), `technical-engineer` (Coding-loop orchestrator — start here for one task), `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`, `validator`, `feature-agent`, `task-planner` |
 | `plugins/neo-product/` | `product.engineer` (orchestrator — start here), `product.researcher`, `product.coach`, `design.thinking`, `systems.thinking`                              |
 
 `master-control` is dev-time only and lives at the repo root, never in a plugin.
@@ -90,7 +90,7 @@ This repo has nothing to compile, lint, or unit-test in the app sense. Do **not*
   ```bash
   export COPILOT_HOME=$(mktemp -d)
   copilot plugin marketplace add .
-  copilot plugin install neo-core@neo    # must say "Installed 3 skills."
+  copilot plugin install neo-core@neo    # must say "Installed 4 skills."
   copilot plugin install neo-product@neo # must say "Installed 4 skills."
   copilot plugin list                    # confirms installed, enabled, and live directory
   copilot -p "List the exact names of every skill available to you and nothing else."
@@ -221,9 +221,10 @@ copilot plugin marketplace remove neo
   directory (`../neo-react/...` or a repo-root file won't be copied). Shared content must
   be duplicated into each plugin.
 - The **consuming** repo also needs its own `AGENTS.md` (commands, layout, style,
-  integration mode, and **commit-message conventions**) — that is the user's artifact, distinct
+  integration mode — e.g. `Integration mode: A`, which the coding loop reads to pick each PR's
+  base — and **commit-message conventions**) — that is the user's artifact, distinct
   from this one, which describes how to work on Neo itself. The coding loop commits one commit
-  per unit in [Conventional Commits](https://www.conventionalcommits.org/) form (owned by
+  per step in [Conventional Commits](https://www.conventionalcommits.org/) form (owned by
   `neo.code-writer.agent.md`; see `docs/concepts/process-flow.md` § Boundary 2). A consuming repo
   may define its own scopes and extra types in its `AGENTS.md`, but stays within Conventional
   Commits — it is the required format, not just a default.
