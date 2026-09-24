@@ -111,11 +111,24 @@ and say so explicitly in your report — which agent was missing, and what you u
 
 ### 5. Fan out into sessions
 
+- **Read the integration mode** from the consuming repo's `AGENTS.md` (`Integration mode: A` or
+  `B`); if none is declared it is **Mode A**, Neo's default (`docs/concepts/process-flow.md`
+  § Integration modes).
+- **Under Mode A, prepare each feature's integration branch before spawning its tasks.** Every task
+  under a feature PRs into one long-lived branch, `feature/<feature-id>-<short-name>`. Reuse it if
+  it already exists (`git ls-remote --heads origin 'feature/<feature-id>-*'`); otherwise create it
+  from the up-to-date default branch and push it
+  (`git push origin origin/<default>:refs/heads/feature/<feature-id>-<short-name>`). Creating it
+  once, here, keeps parallel sessions from racing to create it.
 - `list_projects` to resolve the project, then **`create_session` once per task**:
   - `kickoff.agent: "Neo Technical Engineer"`
   - `kickoff.prompt`: the issue reference **and everything the session needs to work standalone** —
     the definition of done, the validation criteria, and any decision already made with the human.
-    A child session cannot see this conversation. Assume it knows nothing.
+    A child session cannot see this conversation. Assume it knows nothing. The prompt must also
+    carry:
+    - the line `Delegated by: Neo Business Engineer` — it is what tells the Technical Engineer that
+      you hold its plan gate, so it stops for your approval instead of waiting on a human;
+    - the integration mode and, under Mode A, the feature's integration branch.
   - `coordinate_with_creator: true` and `notify_on_idle: "once"` so you hear back.
   - `name`: a short sentence-case title naming the task.
 - **Independent tasks spawn in parallel. Dependent ones are sequenced and stacked** — spawn the
@@ -126,8 +139,10 @@ and say so explicitly in your report — which agent was missing, and what you u
 
 ### 6. Steer and collect
 
-- Each child session stops at its own plan gate. Read the plan with `get_session`, then
-  `respond_to_session_plan` — approve, or reject with concrete feedback. Do not rubber-stamp.
+- Each child session stops at its own plan gate and **waits for you** — a delegated Technical
+  Engineer never approves its own plan, and it does not wait on `/fleet`. Read the plan with
+  `get_session`, then `respond_to_session_plan` — approve, or reject with concrete feedback. Check
+  that every validation criterion maps to a step and a proving test or check. Do not rubber-stamp.
 - Correct or redirect a running session with `send_session_message`. Use immediate delivery when the
   session should act on it now.
 - **Never poll and never sleep.** End your turn after spawning or messaging; the idle notification
