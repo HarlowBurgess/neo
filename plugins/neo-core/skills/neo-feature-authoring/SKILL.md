@@ -10,7 +10,7 @@ A feature is the business-level unit of work. It derives from a PRD/requirements
 ## Required fields
 
 - **Title** — business-level, imperative and specific.
-- **Source** — the PRD/requirements segment this feature derives from. Downstream, a pattern of failures that traces back to one segment is how a problem with the PRD itself gets noticed.
+- **Source** — the PRD/requirements segment this feature derives from, and the ids of the PRD requirements it delivers with their priority (P0 / P1 / P2). Downstream, a pattern of failures that traces back to one segment — or a failure on a P0 requirement — is how a problem with the PRD itself gets noticed.
 - **What** — a brief description of the business-level change. No implementation detail, no stack layers, no task-sized breakdown — that's the Task Planner's job, one step downstream.
 - **Why** — justification for building it _now_.
 - **KPIs** (optional) — hypotheses about the value the feature will produce. Optional, but every KPI you do write must pass the falsifiability gate below.
@@ -32,7 +32,7 @@ A KPI is **admissible only if all four are named**:
 Two more lines travel with every KPI:
 
 - **Baseline** — what the result is compared against: a pre-change measurement, a holdout group, or a staged rollout. **Required** for a captive population (below) and whenever the falsifier is relative ("15% below…"). Design it now — it usually cannot be reconstructed after the fact — and choose the window to accommodate it.
-- **PRD success criterion** — the one the KPI serves, if the feature came from a PRD (or `none`).
+- **PRD goal** — the row of the PRD's Goals & Success Metrics the KPI serves, if the feature came from a PRD (or `none`).
 
 Omit a KPI rather than invent one with no credible basis. A feature with no KPIs is legitimate; a feature with an unfalsifiable KPI is not.
 
@@ -53,7 +53,7 @@ A captive-population KPI **must** name a deliberate baseline — there is no chu
 Before / after:
 
 - ✗ `Increase adoption of the new claims screen to 90% in 30 days.` (engagement metric on a captive population; no falsifier; no baseline)
-- ✓ `Metric: median time from claim intake to adjudication. Instrumentation: the existing claim_status_changed event. Window: 60 days. Falsifier: median intake-to-adjudication is not at least 15% below baseline. Baseline: the 60 days before deploy. Serves PRD success criterion SC-2.`
+- ✓ `Metric: median time from claim intake to adjudication. Instrumentation: the existing claim_status_changed event. Window: 60 days. Falsifier: median intake-to-adjudication is not at least 15% below baseline. Baseline: the 60 days before deploy. Serves PRD goal: "cut claim cycle time".`
 
 ## Verification steps — the rules
 
@@ -83,7 +83,7 @@ A feature is **not** ready-to-work until it has What + Why + verification steps 
 
 ```
 Title:
-Source (PRD segment):
+Source (PRD segment; requirement ids + priority):
 What:
 Why:
 KPIs (optional — each must name all four gate fields, or be dropped):
@@ -92,7 +92,7 @@ KPIs (optional — each must name all four gate fields, or be dropped):
     Window:
     Falsifier: <the result that would count as disproved>
     Baseline: <pre-change measurement | holdout | staged rollout | none — only if not captive and the falsifier is absolute>
-    Serves PRD success criterion: <id | none>
+    Serves PRD goal: <Goals & Success Metrics row | none>
 Captive population: <yes | no>
 Verification steps:
   - <BE-executable, non-prod, pass/fail judgment>
