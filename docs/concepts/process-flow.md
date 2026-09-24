@@ -284,15 +284,15 @@ flowchart LR
   subgraph OPS[Operations Space]
     IN[Intake: KPIs emitting?] --> W[Post-deploy watch] --> S{KPI settlement}
   end
-  TS -- "B1: one task" --> T
-  PR -- "B2: draft PR" --> RV
-  V -- "B3: verified" --> REL
-  CD -- "B4: deployment record" --> IN
-  V -- "rejected: mis-built" --> T
-  V -- "rejected: mis-specified / both" --> F
-  W -- "rollback: human decides" --> REL
-  S -- "falsified / unsettleable" --> F
-  S -. "strategic-reopen candidate" .-> PRD[Product loop: PRD]
+  TS -->|"B1: one task"| T
+  PR -->|"B2: draft PR"| RV
+  V -->|"B3: verified"| REL
+  CD -->|"B4: deployment record"| IN
+  V -->|"rejected: mis-built"| T
+  V -->|"rejected: mis-specified / both"| F
+  W -->|"rollback: human decides"| REL
+  S -->|"falsified / unsettleable"| F
+  S -.->|"strategic-reopen candidate"| PRD[Product loop: PRD]
 ```
 
 ### The boundary
