@@ -106,6 +106,11 @@ same route that repo gets its `AGENTS.md`.
 | `neo-feature-authoring` skill | `neo-core` | |
 | `neo-task-authoring` skill | `neo-core` | |
 | `neo-pr-authoring` skill | `neo-core` | Owns the draft PR that crosses Boundary 2 |
+| `platform-engineer` | `neo-core` | Deployment Space. Selects deploy/CD/smoke stack skills by description, never a hardcoded list |
+| `sre` | `neo-core` | Operations Space. Selects telemetry stack skills by description |
+| `neo-feature-verification` skill | `neo-core` | Owns the Boundary 3 run and its verification and rejection records |
+| `neo-release-authoring` skill | `neo-core` | Owns the feature PR / flag release, the deployment record that crosses Boundary 4, and the revert |
+| `neo-kpi-settlement` skill | `neo-core` | Owns intake, the post-deploy watch, and KPI settlement |
 | `product.engineer` (orchestrator) | `neo-product` | Entry point for the Product loop |
 | `product.researcher` | `neo-product` | Fanned out in parallel by the orchestrator |
 | `product.coach` | `neo-product` | Viability lens |
@@ -148,6 +153,12 @@ or the work belongs in a skill. Require a written justification in the plugin's 
 adding one. Loops stay the same across stacks; that invariant is what makes `neo-core` worth
 having.
 
+This applies to operations stacks too. A platform or ops plugin (a cloud platform, an
+observability stack) ships the **skills** — how to deploy on this platform, how to query this
+telemetry — and `neo-core`'s `platform-engineer` and `sre` late-bind them. The deployment and
+operations *procedure* — who may change production, what the deployment record carries, how a KPI
+settles — is Process-tier and does not vary by platform, so it is not the plugin's to ship.
+
 ### The late-binding rule
 
 `neo-core` agents **cannot name stack skills** — the stack may not be installed. They must select
@@ -173,9 +184,12 @@ Every stack skill must:
    filename conventions where they exist.
 3. **Name the technology explicitly** — framework, library, and runtime by the names that appear
    in a task description.
-4. **State the phase it serves** — implement, test, or review. Build-time skills (React, Angular,
-   Web API, Bicep) are distinct from test-time skills (xUnit, Playwright); the description must
-   make that distinction discoverable.
+4. **State the phase it serves** — implement, test, review, **deploy**, or **operate**. Build-time
+   skills (React, Angular, Web API, Bicep) are distinct from test-time skills (xUnit, Playwright),
+   and both are distinct from deploy-time skills (a cloud's deploy CLI, a pipeline system, smoke
+   checks) and operate-time skills (a telemetry platform's query language). The description must
+   make that distinction discoverable — the Platform Engineer and SRE agents select deploy and
+   operate skills the same way the Code Writer selects build skills.
 5. **Not overload** — one capability per skill, so the description stays sharp. A skill covering
    "React and testing and deployment" triggers wrongly in all three cases.
 

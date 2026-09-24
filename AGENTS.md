@@ -50,7 +50,7 @@ The shipped agents:
 
 | Plugin                 | Agents                                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins/neo-core/`    | `business-engineer` (Specification-loop orchestrator), `technical-engineer` (Coding-loop orchestrator — start here for one task), `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`, `validator`, `feature-agent`, `task-planner` |
+| `plugins/neo-core/`    | `business-engineer` (Specification-loop orchestrator; also carries a feature through verification), `technical-engineer` (Coding-loop orchestrator — start here for one task), `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`, `validator`, `feature-agent`, `task-planner`, `platform-engineer` (Deployment Space), `sre` (Operations Space) |
 | `plugins/neo-product/` | `product.engineer` (orchestrator — start here), `product.researcher`, `product.coach`, `design.thinking`, `systems.thinking`                              |
 
 `master-control` is dev-time only and lives at the repo root, never in a plugin.
@@ -90,7 +90,7 @@ This repo has nothing to compile, lint, or unit-test in the app sense. Do **not*
   ```bash
   export COPILOT_HOME=$(mktemp -d)
   copilot plugin marketplace add .
-  copilot plugin install neo-core@neo    # must say "Installed 4 skills."
+  copilot plugin install neo-core@neo    # must say "Installed 7 skills."
   copilot plugin install neo-product@neo # must say "Installed 4 skills."
   copilot plugin list                    # confirms installed, enabled, and live directory
   copilot -p "List the exact names of every skill available to you and nothing else."

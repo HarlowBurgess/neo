@@ -1,7 +1,8 @@
 # neo-core
 
-The shipped Neo plugin for the coding and specification loops — a coordinated crew of coding
-agents for GitHub Copilot CLI that drives a spec from concept to a draft PR.
+The shipped Neo plugin for the specification, coding, and verification / operations loops — a
+coordinated crew of agents for GitHub Copilot CLI. It drives a spec from concept to a draft PR, and
+the verified feature on to production and KPI settlement.
 
 ## What's inside
 
@@ -20,12 +21,24 @@ agents for GitHub Copilot CLI that drives a spec from concept to a draft PR.
   - `validator` — proves every validation criterion on the finished branch before the PR opens.
   - `feature-agent`, `task-planner` — the specification crew that turns an issue/story into a
     feature spec and taskset.
+  - `platform-engineer` — Deployment Space. Deploys a feature to non-prod for verification, opens
+    the draft feature PR that squash-merges it, watches the project's own CD, smoke-tests
+    production, writes the deployment record, and prepares rollbacks. It never deploys to
+    production and never merges.
+  - `sre` — Operations Space. Confirms each KPI's instrumentation is emitting after deploy,
+    watches production health, and settles each KPI from telemetry once its window closes.
 - **Skills** (`skills/`):
   - `neo-evidence-standard` — the retrieval-or-silence rule and the `FACT`/`INFERENCE`/`RECALL` labels.
   - `neo-feature-authoring` — authoring guidance for feature specs.
   - `neo-task-authoring` — authoring guidance for tasksets.
   - `neo-pr-authoring` — the draft PR that ends the Coding loop: its base branch, body sections,
     and closing keyword.
+  - `neo-feature-verification` — the Business Engineer's verification of a feature, the
+    falsification attempt on every step, and the rejection triage.
+  - `neo-release-authoring` — the feature PR and its squash traceability, the flag release, the
+    deployment record, and the revert.
+  - `neo-kpi-settlement` — KPI intake, the post-deploy watch, and settlement against each KPI's
+    pre-registered falsifier.
 - **Hooks** (`hooks/hooks.json`, v1 schema, `${PLUGIN_ROOT}`):
   - fail-open **observability** logging via `hooks/scripts/log-event.{sh,ps1}` — the only
     thing the manifest registers.
@@ -53,7 +66,9 @@ skills from `skills/`, and hooks from `hooks/hooks.json`.
 
 Invoke the **business-engineer** with a PRD to run the Specification loop end to end, or the
 **technical-engineer** with an issue/story reference to drive a single task to a validated draft
-PR. See the
+PR. When a feature's PRs have merged, invoke the **business-engineer** with the feature to verify
+it, then the **platform-engineer** (`handover`) after the release merges, and the **sre** to take it
+through operations. See the
 repo docs for detail:
 
 - `docs/getting-started.md` — what Neo is and the quickest path in.

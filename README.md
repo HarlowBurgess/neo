@@ -7,6 +7,8 @@ Initiate a new product platform (greenfield) or an existing codebase (brownfield
 Initiate a new feature and taskset. Given a GitHub Issue or Azure DevOps story, an orchestrator drives it through
 research → plan → implement → review → validate → draft PR.
 
+Carry a feature to production and past it. Once its PRs have merged, the Business Engineer verifies it in non-prod, including deliberate attempts to break it. A human merges the release. Production changes only through your own CD, and each KPI is settled from production telemetry once its window closes.
+
 ## Layout
 
 This is a **monorepo of plugins**. The shipped crews live under `plugins/`; the repo root
@@ -15,9 +17,10 @@ holds manifests, docs, and dev-time-only tooling.
 - `AGENTS.md` — project context agents read (layout, checks, guardrails).
 - `plugins/neo-core/` — the baseline plugin. Agents (`business-engineer` and `technical-engineer`
   orchestrators, plus `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`,
-  `validator`, `feature-agent`, `task-planner`), four skills (the feature, task, and PR authoring
-  skills, plus the evidence standard), the observability hooks + logger, and
-  `analyze_agent_logs.py`.
+  `validator`, `feature-agent`, `task-planner`, and the `platform-engineer` and `sre` for
+  deployment and operations), seven skills (the feature, task, and PR authoring skills; feature
+  verification, release authoring, and KPI settlement; plus the evidence standard), the
+  observability hooks + logger, and `analyze_agent_logs.py`.
 - `plugins/neo-product/` — the optional Product loop. Agents (`product.engineer` orchestrator, plus
   `product.researcher`, `product.coach`, `design.thinking`, `systems.thinking`), the three product
   skills, and its own copy of the hooks + logger.

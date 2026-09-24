@@ -5,9 +5,9 @@ just want to drive agents that are already installed, see
 [using-neo.md](./using-neo.md); if you want to change Neo itself, see
 [../contributing/README.md](../contributing/README.md).
 
-> **Status:** the plugin, its agents, its skills, and the Coding loop they run are `[live]`. The
-> Verification loop the Coding loop's draft PRs feed is `[target]` — see
-> [getting-started.md](../getting-started.md#whats-live-vs-target).
+> **Status:** the plugin, its agents, its skills, and all four loops they run are `[live]` — see
+> [getting-started.md](../getting-started.md#whats-live-vs-target). The Verification / Operations
+> loop needs a few more entries in your `AGENTS.md` than the others (below).
 
 ## 1. Install the plugin
 
@@ -40,7 +40,23 @@ artifact**, distinct from Neo's own `AGENTS.md`. It should carry:
   [Conventional Commits](https://www.conventionalcommits.org/) form. Your `AGENTS.md` may define its
   own scopes and extra types, but stays within that format.
 - **Integration mode** — how Neo work enters your repo (see below). State it as a line the agents
-  can find, e.g. `Integration mode: A`. Under Mode B, also state your feature-flag convention.
+  can find, e.g. `Integration mode: A`. Under Mode B, also state your feature-flag convention,
+  including how a flag is set per environment.
+- **Deployment and operations** — what the Verification / Operations loop runs. Each is a command
+  or a name the agents use exactly as written:
+  - **Non-prod deploy** — the command that deploys a given branch or SHA to a non-prod
+    environment. Under Mode A it must work for an arbitrary feature branch.
+  - **Smoke checks** — read-only checks for non-prod and for production. A check that changes
+    state is never run.
+  - **CD** — the pipeline that deploys your default branch to production, e.g. a workflow name.
+    Neo watches it; it never triggers a production deploy itself.
+  - **Telemetry** — how to query production: the CLI, query language, or command.
+  - **Health signals** — the signals the post-deploy watch compares, the thresholds that count as
+    a regression, and the before/after windows.
+
+  If an entry is missing, the agent that needs it stops and names it. It never guesses a deploy
+  command or a telemetry query. Platform-specific know-how, such as a cloud's deploy CLI or a
+  telemetry platform's query language, comes from a stack plugin's skills (step 5).
 - **Gotchas** — env vars, cross-layer wiring, codegen steps.
 
 For rules that should apply to *some* files rather than the whole repo, add
@@ -59,6 +75,13 @@ loop uses **Mode A**: each task's draft PR targets its parent feature's integrat
 (`feature/<feature-id>-<short-name>`), which Neo creates from your default branch if it doesn't
 exist. Declaring Mode B without a flag convention stops the loop at intake, because Mode B can't
 run without one.
+
+Under Mode A, a verified feature reaches your default branch as **one squash commit**. Neo opens
+it as a draft PR whose body lists every task it closes and its parent feature, and a human
+squash-merges it. Make sure the squash commit message is the **PR title and body**: set your
+repository's default squash message that way, or paste the body when merging. That body is what
+preserves the commit → task → feature chain
+([process-flow.md § Traceability under squash](../concepts/process-flow.md#traceability-under-squash)).
 
 ## 4. Add the Product loop (optional)
 
@@ -80,7 +103,8 @@ optional. See
 ## 5. Add a stack (optional)
 
 `neo-core` handles the process; **stack plugins** (e.g. a React or .NET plugin) carry the
-tech-specific skills a coder uses *inside* a task. Every project installs `neo-core`; stacks are
+tech-specific skills a coder uses *inside* a task, and platform skills (a cloud's deploy mechanics,
+a telemetry platform's queries) that the Platform Engineer and SRE agents use. Every project installs `neo-core`; stacks are
 additive and late-bound. The core/stack split — the three tiers and how stack skills are discovered
 at runtime — is owned by
 [../contributing/reference/stack-plugin-contract.md](../contributing/reference/stack-plugin-contract.md).

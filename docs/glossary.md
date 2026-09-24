@@ -20,9 +20,13 @@ person, "Neo Business Engineer" is always software.
 
 **Technical Engineer** `[live]` — The human who turns a plan into working software and stands behind it. Same seat as "the developer" or "the engineer" — the craftsperson who carries a task from spec to draft PR, making the calls no spec can fully anticipate.
 
+**Platform Engineer** `[live]` — The human who owns the road to production. Same seat as "DevOps engineer" or "release engineer" — the one who decides what reaches production and when, owns the pipelines and environments, and makes the rollback call. Owns **Deployment Space**.
+
+**Site Reliability Engineer (SRE)** `[live]` — The human who owns the running system. Watches production health, calls regressions, and settles whether a shipped feature delivered the value it claimed. Owns **Operations Space**.
+
 ### Agent roles
 
-**Neo Business Engineer** `[live]` — The *agent* (`neo.business-engineer`, `neo-core`) that supports the human Business Engineer in this task. It may be handed a PRD, a subset of a PRD, or a raw feature to elaborate, and runs the **Specification loop** on the Business Engineer's behalf: segments the PRD, sequences the **Feature Agent** and **Task Planner** for each segment, files the approved tasks as their carrier issues, and spawns one session per task running the **Neo Technical Engineer**. It is **not** the Business Engineer — it holds the gates open, it does not pass through them. Feature sign-off and task-set approval remain the human's, always. Canonical `name:` is **Neo Business Engineer**.
+**Neo Business Engineer** `[live]` — The *agent* (`neo.business-engineer`, `neo-core`) that supports the human Business Engineer in this task. It may be handed a PRD, a subset of a PRD, or a raw feature to elaborate, and runs the **Specification loop** on the Business Engineer's behalf: segments the PRD, sequences the **Feature Agent** and **Task Planner** for each segment, files the approved tasks as their carrier issues, and spawns one session per task running the **Neo Technical Engineer**. Once a feature's tasks have landed, it carries the feature through **verification**: confirms the fan-in, has the **Neo Platform Engineer** deploy it to non-prod, walks the Business Engineer through the verification steps and any rejection triage, records the result, and has the release prepared. It is **not** the Business Engineer — it holds the gates open, it does not pass through them. Feature sign-off, task-set approval, and the verification verdict remain the human's, always. Canonical `name:` is **Neo Business Engineer**.
 
 **Neo Product Engineer** `[live]` — The agent (`neo.product.engineer`, `neo-product`) that supports the human Product Engineer by running the **Product loop**: fans out **Product Researchers**, sequences the three lenses (**Product Coach**, **Design Thinking Facilitator**, **Systems Thinking Facilitator**), and drives the result to a **PRD**. It orchestrates rather than authors — the analysis belongs to the lenses, the PRD drafting to the Product Coach. Canonical `name:` is **Neo Product Engineer**.
 
@@ -46,7 +50,9 @@ person, "Neo Business Engineer" is always software.
 
 **Validator** `[live]` — Coding-loop agent that runs **validation** for a whole task: once every step is approved, it runs the check behind each validation criterion on the branch head and reports pass, fail, or unproven. The draft PR opens only on a clean result.
 
-**SRE Agent / Platform Engineering Agent** `[target]` — Operations & Deployment agents.
+**Neo Platform Engineer** `[live]` — The agent (`neo.platform-engineer`, `neo-core`) that supports the human Platform Engineer in **Deployment Space**: deploys a feature's integration target to non-prod and smoke-tests it for verification, opens the draft feature PR that squash-merges a verified feature (Mode A) or records its flag release (Mode B), watches the project's own CD after a human merges, smoke-tests production, and posts the **deployment record** that crosses Boundary 4. Prepares rollbacks for a human to perform. It never deploys to production, flips a production flag, or merges. Canonical `name:` is **Neo Platform Engineer**.
+
+**Neo SRE** `[live]` — The agent (`neo.sre`, `neo-core`) that supports the human SRE in **Operations Space**: receives the deployment record, confirms each KPI is admissible and its instrumentation is emitting, watches post-deploy health and recommends rollback on a regression, and performs **KPI settlement** once each window closes. It reads production and never changes it. Canonical `name:` is **Neo SRE**.
 
 ## Units of work
 
@@ -60,7 +66,11 @@ person, "Neo Business Engineer" is always software.
 
 ## Proof
 
-**Verification** `[live]` — Human judgment proving a **feature** meets its business contract, executed by the Business Engineer in a non-prod environment.
+**Verification** `[live]` — Human judgment proving a **feature** meets its business contract, executed by the Business Engineer in a non-prod environment. Falsification-framed: the steps are frozen at sign-off, each is run as written, and each then gets at least one deliberate attempt to break it. The gate at [Boundary 3](./concepts/process-flow.md#boundary-3--verification--deployment).
+
+**KPI settlement** `[live]` — Telemetry proving (or disproving) that a deployed **feature** delivered the value its KPIs claimed: each KPI's pre-registered falsifier applied literally to production data after its window closes, with a verdict of `supported`, `falsified`, or `unsettleable`. Establishes **value fit**, where verification establishes problem–solution fit; non-blocking, and never collapsed into verification. Performed by the **Neo SRE**.
+
+**Triage finding** `[live]` — The human diagnosis recorded when verification fails or a deployed feature is rolled back: **mis-built** (the contract is right; the code doesn't satisfy it), **mis-specified** (the contract is wrong), **both** (spec is fixed first), or — after verification only — **mis-deployed** (contract and code are fine; the release or environment is wrong).
 
 **Validation** `[live]` — Machine execution (unit tests, system tests, autonomous agents) proving a **task** meets its spec. No human judgment.
 
@@ -76,13 +86,29 @@ person, "Neo Business Engineer" is always software.
 
 **Coding loop** `[live]` — One **Task** → intake → research → plan → implement and review (interleaved steps) → validate → draft **PR**. Run by the **Neo Technical Engineer**; ends at [Boundary 2](./concepts/process-flow.md#boundary-2--coding--verification).
 
-**Verification loop / Operations & Deployment** `[target]` — PR Review, Smoke Test, User Test, CD, Telemetry. *Human Judgement Required.*
+**Verification / Operations loop** `[live]` — Draft PRs → PR review → fan-in → non-prod deploy and smoke test → **verification** (the user test) → release → CD and production smoke test → telemetry and **KPI settlement**. *Human Judgement Required.* Runs through three spaces; crosses [Boundary 3](./concepts/process-flow.md#boundary-3--verification--deployment) and [Boundary 4](./concepts/process-flow.md#boundary-4--deployment--operations).
+
+**Verification Space** `[live]` — Where a feature is proven before it ships: task PR review and merge, fan-in, the non-prod deploy, and the Business Engineer's verification and triage. Ends at Boundary 3.
+
+**Deployment Space** `[live]` — Release mechanics: the feature PR and squash (Mode A) or flag release (Mode B), production CD, production smoke checks, and executing a rollback. Owned by the Platform Engineer. Ends at Boundary 4, when the feature is live, its CD run is green, and its production smoke checks pass.
+
+**Operations Space** `[live]` — The running feature over time, from its deployment record onward: instrumentation intake, the post-deploy watch, and KPI settlement. Owned by the SRE. Ends when every KPI the feature shipped with has settled.
+
+**Strategic-reopen candidate** `[live]`, provisional — A signal that a failure points past one feature at the premise of the PRD it came from, raised to the human Product Engineer, who decides whether the Product loop reopens. Never an automatic reopen. The signals are owned by [process-flow.md](./concepts/process-flow.md#strategic-reopen-candidates-provisional).
 
 ## Artifacts
 
 **neo-task-authoring** `[live]` — The skill defining what a clean task is: fields, validation-criteria format, one-PR sizing rule.
 
 **neo-pr-authoring** `[live]` — The skill defining the draft **PR** that crosses Boundary 2 (Coding → Verification): which branch it targets under each integration mode, its required body sections — including the validation report and review ledger — and its closing keyword.
+
+**neo-feature-verification** `[live]` — The skill defining a feature's verification run at Boundary 3: entry conditions, the frozen contract, the falsification attempt on every step, the verdict rule, the **verification record**, the triage interview, and the **rejection record**.
+
+**neo-release-authoring** `[live]` — The skill defining the Deployment-side artifacts: the Mode A feature PR and the traceability its squash commit must carry, the Mode B flag release, the **deployment record** that crosses Boundary 4, and the revert.
+
+**neo-kpi-settlement** `[live]` — The skill defining Operations' work on a deployed feature: the admissibility re-check, the intake record, the post-deploy watch and rollback recommendation, the settlement procedure, verdicts and record, routing, and the strategic-reopen signals.
+
+**Deployment record** `[live]` — The artifact that crosses Boundary 4: what was released, the CD run, the production smoke results, the rollback unit, and the feature's KPIs verbatim. Posted on the feature's carrier issue, like the verification, rejection, intake, and settlement records.
 
 **Task handoff schema** `[live]` — The normative definition of the **Task** artifact that crosses Boundary 1 (Specification → Coding): its carrier (a Task *is* the GitHub Issue / Azure DevOps story it is filed as), fields, and on-harness format. See [`task-handoff-schema.md`](./contributing/reference/task-handoff-schema.md).
 

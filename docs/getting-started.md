@@ -14,22 +14,25 @@ New to the vocabulary? Read the [glossary](./glossary.md) first, then
 
 ## What's live vs. target
 
-Neo is designed as four loops (see [architecture.md](./concepts/architecture.md)). The first three
-are built:
+Neo is designed as four loops (see [architecture.md](./concepts/architecture.md)). All four are
+built:
 
 | Loop | What it does | Status |
 | --- | --- | --- |
 | **Product loop** | Problem/opportunity → research → viability/desirability/feasibility → **PRD** | `[live]` |
 | **Specification loop** | PRD/requirements → **Feature** (business, human-signed) → **Task** (spec, ≈ 1 PR) | `[live]` |
 | **Coding loop** | Task → research → plan → implement and review → validate → draft PR | `[live]` |
-| **Verification / Operations** | PR review, smoke/user test, CD, telemetry | `[target]` |
+| **Verification / Operations** | Draft PRs → verified feature → release → production → KPI settlement | `[live]` |
 
 So today you use Neo to **turn intent into a signed-off, machine-checkable task set** — producing a
-PRD first if you don't have one — and then to **carry each task to a validated draft PR**. The
-Coding loop checks the task on arrival, plans it into steps you approve, implements and reviews
-each step, validates every criterion on the finished branch, and stops at a draft PR for a human.
-What happens after the PR — verifying the feature, deploying it, watching it in production — is
-still `[target]`.
+PRD first if you don't have one — then to **carry each task to a validated draft PR**, and then to
+**prove the feature twice**. The Coding loop checks the task on arrival, plans it into steps you
+approve, implements and reviews each step, validates every criterion on the finished branch, and
+stops at a draft PR for a human. Once a feature's PRs have merged, Neo deploys it to non-prod and
+walks the Business Engineer through verifying it — including trying to break it. It then prepares
+the release for a human to merge, watches the project's own CD, and later settles the feature's
+KPIs from production telemetry. Humans still make every merge, every production change, and every
+verdict.
 
 ## The 60-second model
 
@@ -48,7 +51,7 @@ is the thing you can actually automate.
 - **I want to run Neo in my repo.** → [guides/installing-neo.md](./guides/installing-neo.md) —
   install `neo-core`, write your project's `AGENTS.md`, add a loop or a stack.
 - **I want to drive the crew.** → [guides/using-neo.md](./guides/using-neo.md) — produce a PRD,
-  then work the Specification loop with the BE.
+  work the Specification loop with the BE, then verify, release, and settle each feature.
 - **I want to hand in a piece of work.** → [guides/filing-work.md](./guides/filing-work.md) — what a
   well-formed Feature and Task look like.
 - **I want to change Neo itself.** → [contributing/README.md](./contributing/README.md) — contracts,

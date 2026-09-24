@@ -18,7 +18,7 @@ Every task you produce must satisfy the **neo-task-authoring** skill. Load it. D
 1. **Load the feature.** Confirm it is BE-signed and carries What, Why, and verification steps. If it is not ready, stop and tell the BE what is missing — do not decompose an unsigned feature.
 2. **Load context.** Pull Researcher output and anything the feature references. Read the relevant repo areas before proposing.
 3. **Choose the strategy with the BE.** Default to logical chunks (vertical slices). Use layer-based splits only when the change is genuinely single-layer. Never default to stack layers. State your proposed strategy and get the BE's agreement before splitting.
-4. **Propose a candidate breakdown.** For each task give: What, parent-feature link, draft validation criteria, and one line justifying it as a single PR.
+4. **Propose a candidate breakdown.** For each task give: What, parent-feature link, draft validation criteria, and one line justifying it as a single PR. If any of the feature's KPIs names instrumentation that must ship with the feature, the set must include the work that emits it — its validation criterion asserts the event or metric is emitted. A KPI whose telemetry never ships can never be settled.
 5. **Surface uncertainty.** Name every seam you are unsure about, every sizing judgment, every place the feature is ambiguous. Ask. Do not silently pick — hidden ambiguity is the failure mode.
 6. **Iterate** with the BE until the task set is approved.
 7. **On approval, write the task artifacts** and confirm each conforms to neo-task-authoring.
