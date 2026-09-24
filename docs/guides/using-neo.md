@@ -5,11 +5,11 @@ Specification loop. Assumes Neo is already installed (see
 [installing-neo.md](./installing-neo.md)). Terms in **bold** are in the
 [glossary](../glossary.md).
 
-> **Status:** the Product loop (problem → PRD) and the Specification loop (PRD → Feature → Task)
-> are `[live]` and interactive. The Coding
-> loop that would then carry a Task to a draft PR autonomously is `[target]`; today the
-> orchestrator and worker agents exist, but you drive the spec work hands-on with the BE at the
-> gates. See [getting-started.md](../getting-started.md#whats-live-vs-target).
+> **Status:** the Product loop (problem → PRD), the Specification loop (PRD → Feature → Task), and
+> the Coding loop (Task → validated draft PR) are `[live]`. The first two are interactive by
+> design; the Coding loop runs on its own between two gates — plan approval and the draft PR. What
+> comes after the PR is `[target]`. See
+> [getting-started.md](../getting-started.md#whats-live-vs-target).
 
 ## The agents you'll invoke
 
@@ -20,8 +20,8 @@ Specification loop. Assumes Neo is already installed (see
 | **Neo Business Engineer** (`business-engineer`) | Orchestrator for the Specification loop — segments the PRD, runs Feature Agent and Task Planner for each segment, files the approved tasks, then spawns one session per task | Yes — if you want the loop driven rather than driving it by hand |
 | **Neo Feature Agent** (`feature-agent`) | Drafts a **Feature** — What/Why/KPIs/verification — from a PRD segment, with you | Yes |
 | **Neo Task Planner** (`task-planner`) | Splits a signed feature into **Tasks**, with you | Yes |
-| **Neo Technical Engineer** (`technical-engineer`) | Orchestrator — takes a Task (issue/story) and drives research → plan → implement → review → draft PR | Yes |
-| **Neo Researcher / Implementation Planner / Code Writer / Code Reviewer** | Coding-loop workers the orchestrator delegates to | No — the orchestrator wires them |
+| **Neo Technical Engineer** (`technical-engineer`) | Orchestrator for the Coding loop — takes a Task (issue/story) and drives research → plan → implement → review → validate → draft PR | Yes |
+| **Neo Researcher / Implementation Planner / Code Writer / Code Reviewer / Validator** | Coding-loop workers the orchestrator delegates to | No — the orchestrator wires them |
 
 The workers are deliberately sharp and single-purpose; they don't know each other or the whole
 spec. The orchestrator (and you) wire them together.
@@ -73,12 +73,18 @@ set**. It cannot sign for you.
    not stack layers. Each Task is sized to **≈ one PR** and carries **validation criteria** that are
    machine-checkable. "Done" is a **BE-approved** task set, not an agent-emitted one.
 
-3. **Task → draft PR** `[target for full autonomy]`. Invoke **Neo Technical Engineer** with a Task
-   (filed as a GitHub Issue or Azure DevOps story). It branches from the spec (`feat/<issue-id>-<short-name>`),
-   then runs research → plan → implement → review and opens a **draft** PR linked to the spec. It
-   pauses twice for you: **`/fleet`** before research and planning, and **`/rubber-duck`** on the plan
-   before implementation. Findings loop back to the writer until the reviewer approves. All work stays
-   on that feature branch; it never commits to `main` and never merges.
+3. **Task → draft PR** — the Coding loop. Invoke **Neo Technical Engineer** with a Task (filed as a
+   GitHub Issue or Azure DevOps story). It first checks the Task at **intake**: every field of the
+   [task-handoff schema](../contributing/reference/task-handoff-schema.md) and the `be-approved`
+   label must be there, or it stops and tells you what's missing — it never fills the gap itself.
+   It then cuts a task branch (`feat/<issue-id>-<short-name>`) from your project's integration
+   target — under Mode A, the parent feature's `feature/<feature-id>-…` branch — and runs research →
+   plan → implement → review → **validate**. It pauses twice for you: **`/fleet`** before research
+   and planning, and **`/rubber-duck`** on the plan before implementation. Review findings loop back
+   to the writer until the reviewer approves each step; then the Validator runs the check behind
+   every validation criterion, and anything that fails becomes new work. Only a fully validated
+   branch becomes a **draft** PR, carrying the validation report and review ledger. It never
+   commits to `main` and never merges.
 
    Occasionally a Task turns out not to fit in one reviewable PR. When that happens the Technical
    Engineer will tell you and **stack** it: one child session per layer, built bottom-to-top, each
@@ -89,8 +95,10 @@ set**. It cannot sign for you.
 proposes a segmentation, then for each segment runs the Feature Agent and stops for your sign-off,
 runs the Task Planner and stops for your approval of the *set*, files each approved task as its
 carrier issue, and spawns one session per task running the Technical Engineer — in parallel where
-tasks are independent, stacked where one depends on another. It approves each child's plan, steers
-them, and reports back every task, issue, branch, and draft PR.
+tasks are independent, stacked where one depends on another. Under Mode A it creates each feature's
+integration branch first. Each child session stops at its plan gate for the Business Engineer
+rather than for `/rubber-duck`. The Business Engineer approves or rejects each plan, steers the
+sessions, and reports back every task, issue, branch, and draft PR.
 
 ## Your job at the gates
 

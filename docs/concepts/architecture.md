@@ -38,7 +38,7 @@ becomes a documented requirement.
 
 ## The four loops (Diagram 2, target end-state)
 
-The Product and Specification loops are built; the rest is the end-state map.
+The Product, Specification, and Coding loops are built; the rest is the end-state map.
 
 1. **Product loop** `[live]` — problem/opportunity → **PRD**. Research fan-out, then the
    viability / desirability / feasibility lenses, then synthesis. Human-gated twice: the decision
@@ -46,7 +46,9 @@ The Product and Specification loops are built; the rest is the end-state map.
    `neo-product` plugin; the crew and its internals are documented in that plugin's README.
 2. **Specification loop** `[live]` — problem space → solution space. Human-gated at both
    ends.
-3. **Coding loop** `[target]` — `Research → Implementation Planner → Implement` across Build, Validation, and Verification spaces; ends at Review → Code Review → PR.
+3. **Coding loop** `[live]` — one **Task** → intake → research → plan → implement and review
+   (interleaved feature and test **steps**) → validate → draft **PR**. Machine-validated, human-gated
+   at plan approval and at the PR. See [Coding loop in detail](#coding-loop-in-detail).
 4. **Verification / Operations** `[target]` — PR Review, Smoke Test, User Test, CD, Telemetry, run by the SRE and Platform Engineering agents.
 
 The **artifact that crosses each boundary** — including Boundary 0, where the PRD leaves the
@@ -79,6 +81,35 @@ Governed by the `neo-task-authoring` skill (what a clean task _is_) and run by t
 
 One step upstream of Feature→Task, and interactive with the BE in the same way: the `feature-agent` drafts What, Why, optional KPIs, and verification steps from a PRD/requirements segment, governed by the `neo-feature-authoring` skill. It stops at a BE-signed feature and hands off to `task-planner` for decomposition — it does not decompose tasks itself.
 
+## Coding loop in detail
+
+One **Task** in, one draft **PR** out — the Specification loop's output is this loop's input. The
+**Neo Technical Engineer** orchestrates; it delegates every phase and does none of the work itself.
+The procedure is owned by `neo.technical-engineer.agent.md`; the boundaries it sits between are
+owned by [process-flow.md](./process-flow.md).
+
+1. **Intake.** The task must arrive whole — every field of the
+   [task-handoff schema](../contributing/reference/task-handoff-schema.md) plus the `be-approved`
+   marker. A task that fails intake goes back to the Specification loop; it is never patched here.
+2. **Branch.** A task branch named from the task, cut from the project's **integration target**:
+   the parent feature's integration branch under Mode A (the default), the default branch under
+   Mode B. See [process-flow.md § Integration modes](./process-flow.md#integration-modes).
+3. **Research.** `researcher`s fanned out in parallel, one question each, held to the
+   `neo-evidence-standard`.
+4. **Plan.** The `implementation-planner` breaks the task into **steps**, each labeled `[feature]` or
+   `[test]` and one commit, plus a coverage map from every validation criterion to the test that
+   proves it. **Human gate:** the plan is approved before any code is written — by the human, or by
+   the Neo Business Engineer when it spawned the session. The Technical Engineer never approves its
+   own plan.
+5. **Implement and review.** The `code-writer` implements and commits one step at a time; the
+   `code-reviewer` approves each step or returns findings to the writer. Testing is not a separate
+   phase — test steps are interleaved with the feature steps they cover.
+6. **Validate.** Once every step is approved, the `validator` runs the check behind each validation
+   criterion on the branch head. Anything `fail` or `unproven` becomes a new step and loops back.
+   This is the machine half of the core rule: **the task is validated, not reviewed into done**.
+7. **Draft PR.** Opened against the integration target in the shape the `neo-pr-authoring` skill
+   defines, carrying the validation report and the review ledger. A human takes it from there.
+
 ## Key decisions
 
 - **Task = spec.** The framework's central bet: a smaller spec unit is a machine-validatable one.
@@ -90,8 +121,10 @@ One step upstream of Feature→Task, and interactive with the BE in the same way
 
 - **Live:** Product loop (`neo-product` — the Product Engineer, Product Researchers, and the three
   lenses); Specification-loop design; `neo-task-authoring` skill + `task-planner` agent, and
-  `neo-feature-authoring` skill + `feature-agent` (GitHub Copilot).
-- **Target (Diagram 2, not yet specced):** Coding loop and Verification / Operations loop.
+  `neo-feature-authoring` skill + `feature-agent`; Coding loop (`technical-engineer`, `researcher`,
+  `implementation-planner`, `code-writer`, `code-reviewer`, `validator`, and the
+  `neo-pr-authoring` skill) (GitHub Copilot).
+- **Target (Diagram 2, not yet specced):** Verification / Operations loop.
 
 ## Open threads
 

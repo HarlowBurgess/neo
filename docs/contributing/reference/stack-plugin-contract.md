@@ -100,10 +100,12 @@ same route that repo gets its `AGENTS.md`.
 | `implementation-planner` | `neo-core` | |
 | `code-writer` | `neo-core` | Selects stack skills by description, never a hardcoded list |
 | `code-reviewer` | `neo-core` | Same |
+| `validator` | `neo-core` | Same — selects test-phase stack skills by description |
 | `feature-agent` | `neo-core` | |
 | `task-planner` | `neo-core` | |
 | `neo-feature-authoring` skill | `neo-core` | |
 | `neo-task-authoring` skill | `neo-core` | |
+| `neo-pr-authoring` skill | `neo-core` | Owns the draft PR that crosses Boundary 2 |
 | `product.engineer` (orchestrator) | `neo-product` | Entry point for the Product loop |
 | `product.researcher` | `neo-product` | Fanned out in parallel by the orchestrator |
 | `product.coach` | `neo-product` | Viability lens |

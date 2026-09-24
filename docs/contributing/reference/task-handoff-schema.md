@@ -4,7 +4,7 @@ Terms in **bold** are defined in the [glossary](../../glossary.md).
 
 This is the **normative** definition of the single artifact that crosses **Boundary 1
 (Specification → Coding)** in [`process-flow.md`](../../concepts/process-flow.md): the **Task** the
-**Task Planner** emits and the **Team Leader / orchestrator** consumes. It fixes the artifact's
+**Task Planner** emits and the **Neo Technical Engineer** consumes. It fixes the artifact's
 identity, fields, and on-harness format so the emitter and consumer agree on one object.
 
 It does **not** restate the logical rules for a clean task — those live in the
@@ -33,8 +33,10 @@ Consequences:
 
 - The **Task id** is the issue number / work-item id (and its URL). Nothing else identifies a
   task.
-- The draft **PR** that closes the task links back to it by that id (`Closes #<n>` on GitHub, a
-  work-item link on Azure DevOps).
+- The draft **PR** that closes the task links back to it by that id — `Closes #<n>` or
+  `Refs #<n>` on GitHub depending on the PR's base, a work-item link on Azure DevOps. Which one is
+  owned by the [`neo-pr-authoring`](../../../plugins/neo-core/skills/neo-pr-authoring/SKILL.md)
+  skill.
 - A task that is not filed as an issue/story does not exist and cannot cross Boundary 1.
 
 ### Naming caution (Azure DevOps)
@@ -134,14 +136,15 @@ The story-grade work-item type is fixed at project setup (§1, Naming caution).
 - Conforms to `task-authoring` for the logical fields. If it cannot express a machine-checkable
   validation criterion, the task is under-specified — sharpen or split, don't file it.
 
-### Consumer — Team Leader / orchestrator (#11)
+### Consumer — Neo Technical Engineer (#11)
 
 - Treats the issue/story it is handed **as** the task (§1). The
   [`neo-technical-engineer`](../../../plugins/neo-core/agents/neo.technical-engineer.agent.md) "GitHub Issue or
   Azure DevOps story" input and the spec loop's "Task" are one object.
-- May assume all required fields (§2) are present and the task is `be-approved`. If a required
-  field is missing or the approval marker is absent, it stops and routes back — it does **not**
-  invent scope to fill the gap ([`neo-code-writer`](../../../plugins/neo-core/agents/neo.code-writer.agent.md)).
+- Checks, at **intake**, that all required fields (§2) are present and the task is `be-approved`.
+  If a required field is missing or the approval marker is absent, it stops and routes back — it
+  does **not** invent scope to fill the gap
+  ([`neo-technical-engineer`](../../../plugins/neo-core/agents/neo.technical-engineer.agent.md) § 0).
 - Reads the **Validation criteria** as the spec's **acceptance criteria** it plans and
   validates against (§ naming reconciliation).
 

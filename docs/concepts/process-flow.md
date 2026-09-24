@@ -5,8 +5,11 @@ loop**, and back. Terms in **bold** are defined in the [glossary](../glossary.md
 themselves are described in [architecture.md](./architecture.md).
 
 **Scope of this document.** This maps the *boundaries* — what artifact crosses, what gate it
-must clear, who owns the gate, and where it goes when it fails. The internals of the Coding
-and Verification loops remain `[target]` and are not specced here.
+must clear, who owns the gate, and where it goes when it fails. The Coding loop's internals are
+`[live]` and owned by
+[`neo.technical-engineer.agent.md`](../../plugins/neo-core/agents/neo.technical-engineer.agent.md)
+(summarized in [architecture.md § Coding loop in detail](./architecture.md#coding-loop-in-detail));
+the Verification loop's internals remain `[target]`. Neither is specced here.
 
 **Status key:** `[live]` designed and drafted · `[target]` end-state design, not yet specced.
 
@@ -18,7 +21,7 @@ and Verification loops remain `[target]` and are not specced here.
 | --- | --- | --- | --- | --- | --- |
 | — | **Product → Specification** | A **PRD** | PRD is segmentable — each segment carries its own business justification | BE (human), on a `neo-product` PRD | `[live]` |
 | **1** | **Specification → Coding** | One **Task** | Task-authoring conformance + BE-approved task set | BE (human) | `[live]` |
-| **2** | **Coding → Verification** | One draft **PR** | **Validation** green + code review approved | Machine, then human | `[target]` |
+| **2** | **Coding → Verification** | One draft **PR** | **Validation** green + code review approved | Machine, then human | `[live]` |
 | **3** | **Verification → Deployment** | One verified **Feature** | **Verification** steps pass | BE (human judgment) | `[target]` |
 | — | Deployment → Operations | Deployed feature | CD + smoke test pass | Platform Eng Agent | `[target]` |
 
@@ -58,7 +61,7 @@ order; the chain reads Product → Specification → Coding → Verification.
 
 ## Boundary 1 — Specification → Coding
 
-`[live]` on the emitting side; the receiving side needs reconciliation (see Drift).
+`[live]` on both sides — the Technical Engineer's intake step enforces the receiving side (see Drift).
 
 **What crosses.** Exactly one **Task**: the spec-level unit, derived from exactly one
 BE-signed feature, sized to roughly one pull request, carrying machine-checkable validation
@@ -94,38 +97,45 @@ already binding in `neo.task-planner.agent.md` and `neo-code-writer.md`.
 Azure DevOps story." The spec loop emits a **Task**. These need to be the same object: a Neo
 Task should *be* the issue/story it is filed as, so the orchestrator's input contract and the
 task-planner's output contract describe one artifact rather than two. **Resolved** — this is
-now the carrier rule fixed in [`task-handoff-schema.md`](../contributing/reference/task-handoff-schema.md) § 1.
+now the carrier rule fixed in [`task-handoff-schema.md`](../contributing/reference/task-handoff-schema.md) § 1,
+and `neo-technical-engineer` enforces it on receipt: its intake step checks every required field
+and the `be-approved` marker, and routes a failing task back rather than patching it.
 
 ---
 
 ## Boundary 2 — Coding → Verification
 
-`[target]`.
+`[live]`.
 
 **What crosses.** One **draft pull request** implementing one task, with its validation
-criteria green.
+criteria green. Its shape — which branch it targets under each integration mode, its required
+body sections, and its closing keyword — is owned by the `neo-pr-authoring` skill.
 
 **Entry gate.** All must hold:
 
-1. **Validation passes** — the task's machine-checkable criteria run to a deterministic pass.
-   No human judgment participates in this gate; that is the definition of validation.
+1. **Validation passes** — the task's machine-checkable criteria run to a deterministic pass
+   on the branch head, each proven by a check `Neo Validator` actually ran. A criterion with no
+   runnable proof fails. No human judgment participates in this gate; that is the definition of
+   validation.
 2. **Build, lint, and tests pass** for every layer the change touched.
-3. **Code review approved** by the reviewer agent, for both the feature/fix units and the
-   test units.
+3. **Code review approved** by the reviewer agent, for both the feature/fix steps and the
+   test steps.
 4. The PR is linked to its parent task, and through it to the parent feature.
 
-**Gate owner.** Machine first (validation), then the reviewer agent, then a human on the PR.
-The PR stays a **draft** — no agent marks it ready or merges it.
+**Gate owner.** Per step, the machine (the writer's build/lint/tests) then the reviewer agent;
+per task, the machine again (`Neo Validator`, against the integrated head); then a human on the
+PR. The PR stays a **draft** — no agent marks it ready or merges it.
 
 **On rejection.** A reviewer's findings loop back inside the coding loop — passed verbatim to
 the writer, re-reviewed, repeated until approved. This is an *internal* loop and does not
-cross the boundary. Only a stalled loop (the same finding twice with no progress) escalates
-to a human.
+cross the boundary. A failed validation loops back the same way: each failing or unproven
+criterion becomes a new step, is reviewed, and the task is validated again. Only a stalled loop
+(the same finding, or the same failing criterion, twice with no progress) escalates to a human.
 
 **Commits.** The coding loop owns the commit step: `neo-code-writer` commits each completed
-unit to the feature branch once build/lint/tests are green, one commit per unit, in
+**step** to the task branch once build/lint/tests are green, one commit per step, in
 [Conventional Commits](https://www.conventionalcommits.org/) form (`<type>[scope]: <desc>`).
-These per-unit commits are what later squash to **one commit, one feature** (see
+These per-step commits are what later squash to **one commit, one feature** (see
 [Mode A](#mode-a--feature-branch-squash-to-main-default) below). Conventional Commits is the
 required format; a consuming repo may define its own scopes and additional types in its
 `AGENTS.md`, but stays within Conventional Commits.
@@ -138,8 +148,10 @@ project's [integration mode](#integration-modes).
 **Drift to reconcile.** Diagram 2 draws `Testing` as its own phase after `Implement`, but
 `neo-implementation-planner` emits test units interleaved with feature units and
 `neo-code-writer` implements whichever it is assigned. Two different models of the same phase.
-Pick one before speccing the coding loop internals: phase-separated testing, or interleaved
-labeled units.
+**Resolved — interleaved labeled steps.** Every step is labeled `[feature]` or `[test]`,
+sequenced by its dependencies, and reviewed on its own; Diagram 2's `Testing` box is a step
+label, not a phase. The planner's coverage map ties each validation criterion to the test step
+that proves it, which is what task-level validation runs.
 
 ---
 
@@ -194,10 +206,14 @@ telling you something about the Specification loop, not about the coders.
 
 ## Feedback edges
 
-Three edges run backward. Only the first is currently designed.
+Four edges run backward. The two inside the coding loop are designed.
 
 **Review → Implement** `[live]` — inside the coding loop. Reviewer findings return to the
 writer verbatim. Bounded: a repeated finding with no progress escalates to a human.
+
+**Validation → Implement** `[live]` — inside the coding loop. Each criterion the Validator
+reports `fail` or `unproven` becomes a new step, reviewed like any other, before the task is
+validated again. Bounded the same way: a criterion that fails twice with no progress escalates.
 
 **Verification → Coding or Specification** `[target]` — Boundary 3 rejection, routed by BE
 diagnosis as above.
@@ -312,6 +328,13 @@ validated there. When the last child task lands, that branch *is* the verificati
 the BE runs the feature's verification steps against a non-prod deploy of it. On verification
 pass, the branch squash-merges to the default branch: **one commit, one feature.**
 
+The integration branch is named `feature/<feature-id>-<short-name>`. The Neo Business Engineer
+creates it before fanning out a feature's tasks; a Technical Engineer run directly on one task
+reuses it, or creates it from the default branch if it doesn't exist yet. Because a task PR
+targets this branch rather than the default branch, GitHub ignores closing keywords in it: the
+PR says `Refs #<task>`, and the tasks close when the squash commit lands carrying their IDs (see
+Traceability below and the `neo-pr-authoring` skill).
+
 **Properties.** Feature-level revert is a single commit. The feature can be seen whole in
 non-prod with no additional machinery. Fan-in is solved structurally rather than tracked.
 
@@ -371,7 +394,9 @@ which is exactly what makes it revertable — but it removes task-level history 
 For LOB and regulated clients, the commit → task → feature → requirement chain may be an
 audit requirement. Preserve it in the **commit message body** rather than the graph: the
 squash commit lists every child task ID and its parent feature ID. Decide this at project
-setup; it cannot be reconstructed after the merge.
+setup; it cannot be reconstructed after the merge. On GitHub, listing each task as
+`Closes #<task>` also closes the tasks when the squash lands on the default branch — the Mode A
+task PRs could not, because their base was the feature branch.
 
 ---
 
@@ -379,7 +404,8 @@ setup; it cannot be reconstructed after the merge.
 
 - Diagram 2's expanded sub-box is labeled "Specification Loop" but contains the Coding loop
   phases (Research → Planner → Implement → Testing → Review → PR). Drawing bug; fix before it
-  propagates into docs.
+  propagates into docs. When redrawn, `Testing` should read as a step label (interleaved steps,
+  see Boundary 2) and a `Validate` phase belongs between `Review` and `PR`.
 - `Operations Space` is drawn outside all the loops in Diagram 2, with no boundary defined
   between Deployment and Operations. Treated above as an implicit fourth boundary.
 - See [`todo.md`](../../todo.md) for repo-level defects found alongside this mapping.

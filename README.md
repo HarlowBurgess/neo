@@ -5,7 +5,7 @@ A concept-to-spec-to-PR multi-agent coding system for GitHub Copilot CLI.
 Initiate a new product platform (greenfield) or an existing codebase (brownfield) by invoking the **Neo Product Engineer**. It drives research → viability/desirability/feasibility lenses → synthesis → a PRD, which the Specification loop then segments into features and tasks.
 
 Initiate a new feature and taskset. Given a GitHub Issue or Azure DevOps story, an orchestrator drives it through
-research → plan → implement → review → draft PR.
+research → plan → implement → review → validate → draft PR.
 
 ## Layout
 
@@ -15,7 +15,8 @@ holds manifests, docs, and dev-time-only tooling.
 - `AGENTS.md` — project context agents read (layout, checks, guardrails).
 - `plugins/neo-core/` — the baseline plugin. Agents (`business-engineer` and `technical-engineer`
   orchestrators, plus `researcher`, `implementation-planner`, `code-writer`, `code-reviewer`,
-  `feature-agent`, `task-planner`), the two authoring skills, the observability hooks + logger, and
+  `validator`, `feature-agent`, `task-planner`), four skills (the feature, task, and PR authoring
+  skills, plus the evidence standard), the observability hooks + logger, and
   `analyze_agent_logs.py`.
 - `plugins/neo-product/` — the optional Product loop. Agents (`product.engineer` orchestrator, plus
   `product.researcher`, `product.coach`, `design.thinking`, `systems.thinking`), the three product

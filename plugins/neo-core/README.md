@@ -9,18 +9,23 @@ agents for GitHub Copilot CLI that drives a spec from concept to a draft PR.
   - `business-engineer` — the Specification loop orchestrator. Segments a PRD, runs
     `feature-agent` and `task-planner` for each segment, files the approved tasks, then spawns one
     session per task running `technical-engineer`. Needs the Copilot desktop app.
-  - `technical-engineer` — the coding orchestrator. **Start here for a single task.** Drives a spec
-    through research → plan → implement → review → draft PR.
+  - `technical-engineer` — the Coding loop orchestrator. **Start here for a single task.** Checks
+    the task at intake, then drives it through research → plan → implement → review → validate →
+    draft PR, targeted by the project's integration mode.
   - `researcher` — gathers context on the codebase and the task.
-  - `implementation-planner` — turns research into an implementation plan.
-  - `code-writer` — implements units, one Conventional Commit per unit.
-  - `code-reviewer` — reviews the writer's work and requests fixes.
+  - `implementation-planner` — turns research into interleaved feature and test steps, plus a map
+    from every validation criterion to the test that proves it.
+  - `code-writer` — implements steps, one Conventional Commit per step.
+  - `code-reviewer` — reviews each step and requests fixes.
+  - `validator` — proves every validation criterion on the finished branch before the PR opens.
   - `feature-agent`, `task-planner` — the specification crew that turns an issue/story into a
     feature spec and taskset.
 - **Skills** (`skills/`):
   - `neo-evidence-standard` — the retrieval-or-silence rule and the `FACT`/`INFERENCE`/`RECALL` labels.
   - `neo-feature-authoring` — authoring guidance for feature specs.
   - `neo-task-authoring` — authoring guidance for tasksets.
+  - `neo-pr-authoring` — the draft PR that ends the Coding loop: its base branch, body sections,
+    and closing keyword.
 - **Hooks** (`hooks/hooks.json`, v1 schema, `${PLUGIN_ROOT}`):
   - fail-open **observability** logging via `hooks/scripts/log-event.{sh,ps1}` — the only
     thing the manifest registers.
@@ -47,7 +52,8 @@ skills from `skills/`, and hooks from `hooks/hooks.json`.
 ## Use
 
 Invoke the **business-engineer** with a PRD to run the Specification loop end to end, or the
-**technical-engineer** with an issue/story reference to drive a single task to a draft PR. See the
+**technical-engineer** with an issue/story reference to drive a single task to a validated draft
+PR. See the
 repo docs for detail:
 
 - `docs/getting-started.md` — what Neo is and the quickest path in.

@@ -5,8 +5,8 @@ just want to drive agents that are already installed, see
 [using-neo.md](./using-neo.md); if you want to change Neo itself, see
 [../contributing/README.md](../contributing/README.md).
 
-> **Status:** the plugin, its agents, and the authoring skills are `[live]`. The autonomous Coding
-> and Verification loops they will eventually feed are `[target]` — see
+> **Status:** the plugin, its agents, its skills, and the Coding loop they run are `[live]`. The
+> Verification loop the Coding loop's draft PRs feed is `[target]` — see
 > [getting-started.md](../getting-started.md#whats-live-vs-target).
 
 ## 1. Install the plugin
@@ -36,10 +36,11 @@ artifact**, distinct from Neo's own `AGENTS.md`. It should carry:
   pass before a unit is done).
 - **Style** — enforceable conventions.
 - **Guardrails** — never commit or push to `main`; work on a feature branch; end at a **draft** PR.
-- **Commit conventions** — the coding loop commits one commit per unit in
+- **Commit conventions** — the coding loop commits one commit per step in
   [Conventional Commits](https://www.conventionalcommits.org/) form. Your `AGENTS.md` may define its
   own scopes and extra types, but stays within that format.
-- **Integration mode** — how Neo work enters your repo (see below).
+- **Integration mode** — how Neo work enters your repo (see below). State it as a line the agents
+  can find, e.g. `Integration mode: A`. Under Mode B, also state your feature-flag convention.
 - **Gotchas** — env vars, cross-layer wiring, codegen steps.
 
 For rules that should apply to *some* files rather than the whole repo, add
@@ -53,7 +54,11 @@ Neo attaches to your project in one of two modes (**A** or **B**). The choice ch
 enters the repo and who owns the branch. The modes and the "two fits" that decide which suits your
 project are owned by
 [../concepts/process-flow.md § Integration modes](../concepts/process-flow.md). Record the chosen
-mode in your `AGENTS.md` so every agent reads it the same way.
+mode in your `AGENTS.md` so every agent reads it the same way. If you declare none, the Coding
+loop uses **Mode A**: each task's draft PR targets its parent feature's integration branch
+(`feature/<feature-id>-<short-name>`), which Neo creates from your default branch if it doesn't
+exist. Declaring Mode B without a flag convention stops the loop at intake, because Mode B can't
+run without one.
 
 ## 4. Add the Product loop (optional)
 
